@@ -87,6 +87,7 @@ let
     };
   };
   shortcutSettings = lib.recursiveUpdate directionSettings zenosActionSettings;
+  forgeEnabled = cfg.enableExtensions && lib.elem "forge" cfg.extensionIds;
   gdmLogo = pkgs.runCommand "zenos-gdm-logo" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
     install -d "$out/share/pixmaps"
     magick -background none -density 2400 \
@@ -190,6 +191,20 @@ in
         pkgs.zenos.theming.icons.adwaita-hacks
       ]
       ++ lib.optionals cfg.enableExtensions cfg.extensionPackages;
+
+    systemd.user.paths.zenos-forge-backup-cleanup = lib.mkIf forgeEnabled {
+      description = "Watch for Forge's invalid backup file";
+      wantedBy = [ "default.target" ];
+      pathConfig.PathExists = "%h/undefined.bak";
+    };
+
+    systemd.user.services.zenos-forge-backup-cleanup = lib.mkIf forgeEnabled {
+      description = "Remove Forge's invalid backup file";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.coreutils}/bin/rm -f -- %h/undefined.bak";
+      };
+    };
 
     programs.dconf.profiles.user.databases = [
       {

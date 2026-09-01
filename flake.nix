@@ -214,7 +214,10 @@
               }
             );
         zenfs-eval = forceEvalCheck "zenfs-evaluation" (
-          import ./tests/zenfs/eval.nix { inherit nixpkgs system; }
+          import ./tests/zenfs/eval.nix {
+            inherit nixpkgs system;
+            zenpkgs = inputs.zenpkgs;
+          }
         );
         zenfs-unit = pythonCheck "zenfs-unit-tests" "zenfs" ''
           export ZENFSCTL_SCRIPT=${./packages/zenfsctl/zenfsctl.py}

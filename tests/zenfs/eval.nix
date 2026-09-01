@@ -1,10 +1,13 @@
 {
   nixpkgs,
   system ? "x86_64-linux",
+  zenpkgs,
 }:
 
 let
   baseModule = {
+    nixpkgs.config.allowUnfree = true;
+    nixpkgs.overlays = [ zenpkgs.overlays.default ];
     system.stateVersion = "25.11";
     boot.loader.grub.devices = [ "nodev" ];
     fileSystems."/" = {
@@ -103,6 +106,8 @@ assert cfg.zenfs.hierarchy.aliases."/Config" == "/etc";
 assert cfg.zenfs.hierarchy.aliases."/Packages" == "/nix";
 assert cfg.zenfs.hierarchy.aliases."/Live/Runtime" == "/run";
 assert builtins.elem "/Live" cfg.zenfs.hierarchy.directories;
+assert builtins.elem "/mnt" cfg.zenfs.hierarchy.directories;
+assert cfg.zenfs.hierarchy.aliases."/Mount" == "/mnt";
 assert nixpkgs.lib.hasInfix "/Apps" cfg.systemd.services.zenos-app-index.serviceConfig.ExecStart;
 assert
   cfg.systemd.services.zenfs-roaming-work-marker.unitConfig.RequiresMountsFor == [

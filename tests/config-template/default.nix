@@ -171,6 +171,10 @@ assert builtins.elem "zen-dsl" oobePackageNames;
 assert builtins.elem "zen-dsl" finalPackageNames;
 assert builtins.elem "zenos-rebuild" finalPackageNames;
 assert builtins.elem "forge" finalPackageNames;
+assert finalConfig.systemd.user.paths ? zenos-forge-backup-cleanup;
+assert finalConfig.systemd.user.services ? zenos-forge-backup-cleanup;
+assert pkgs.lib.hasInfix "undefined.bak"
+  finalConfig.systemd.user.services.zenos-forge-backup-cleanup.serviceConfig.ExecStart;
 assert !builtins.elem "gnome-extension-manager" finalPackageNames;
 assert !builtins.elem "zenos-setup" finalPackageNames;
 assert !builtins.elem "gnome-shell-extension-zenos-oobe-mode" finalPackageNames;

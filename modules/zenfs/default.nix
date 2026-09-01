@@ -419,6 +419,7 @@ in
         "/Apps"
         "/Live"
         "/System"
+        "/mnt"
       ];
       description = "Real top-level ZenFS directories created before hierarchy aliases.";
     };
