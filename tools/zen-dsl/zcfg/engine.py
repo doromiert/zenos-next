@@ -188,7 +188,17 @@ def _deep_merge(
 
 
 def compile_nix(value: dict[str, ResolvedValue]) -> str:
-    return "{ pkgs }:\n" + _format_attr_set({"zenos": value}, 0) + "\n"
+    legacy = value.get("legacy", {})
+    if not isinstance(legacy, dict):
+        raise ValueError("legacy must be an attribute set")
+    if "zenos" in legacy:
+        raise ValueError("legacy cannot contain the zenos option tree")
+
+    root = dict(legacy)
+    zenos = {key: item for key, item in value.items() if key != "legacy"}
+    if zenos:
+        root["zenos"] = zenos
+    return "{ pkgs }:\n" + _format_attr_set(root, 0) + "\n"
 
 
 def _format_value(value: ResolvedValue, indent: int) -> str:

@@ -65,6 +65,7 @@ class SetupZcfgContractTests(unittest.TestCase):
         self.assertIn("disko = {", compiled)
         self.assertIn("videoDrivers = [", compiled)
         self.assertIn("zenfs = {", compiled)
+        self.assertNotIn("legacy = {", compiled)
         self.assertNotIn("must-not-appear", compiled)
 
     def test_setup_output_parses_and_compiles_with_real_zen_dsl(self):
@@ -112,7 +113,7 @@ class SetupZcfgContractTests(unittest.TestCase):
 
         compiled = compile_nix(resolved)
         self.assertIn("zenos = {", compiled)
-        self.assertIn("legacy = {", compiled)
+        self.assertIn("environment = {", compiled)
         self.assertIn("pkgs.zenos.catalog.firefox", compiled)
         self.assertIn("pkgs.zenos.legacy.epiphany", compiled)
         self.assertIn('stateVersion = "26.05";', compiled)

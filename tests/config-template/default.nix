@@ -25,11 +25,20 @@ let
                isNormalUser = true;
                group = "users";
              };
-             zenfs.users.contract = {
-               home = "/home/contract";
-               group = "users";
+           };
+           zenfs.users.contract = {
+             home = "/home/contract";
+             group = "users";
+           };
+           disko.devices.disk.generated = {
+             type = "disk";
+             device = "/dev/vda";
+             content = {
+               type = "gpt";
+               partitions = { };
              };
            };
+           services.xserver.videoDrivers = [ "modesetting" ];
            environment.gnome.excludePackages = [ pkgs.gnome-extension-manager ];
            environment.systemPackages = [ pkgs.zenos.theming.icons.zenos-icons ];
         }

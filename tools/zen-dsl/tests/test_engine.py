@@ -80,6 +80,19 @@ desktop.nested.local = 3;
             output,
         )
 
+    def test_legacy_compiles_to_the_nixos_root(self) -> None:
+        document = parse(
+            'legacy.disko.devices.disk.main.type = "disk"; '
+            'legacy.zenfs.enable = true; system.release.stateVersion = "26.05";'
+        )
+
+        output = compile_nix(_resolve_assignments(document.assignments))
+
+        self.assertIn("  disko = {", output)
+        self.assertIn("  zenfs = {", output)
+        self.assertIn("  zenos = {", output)
+        self.assertNotIn("legacy = {", output)
+
     def test_rejects_conflicting_local_leaves(self) -> None:
         documents = (
             "a.b = 1; a.b = 2;",
