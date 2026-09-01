@@ -86,7 +86,7 @@
   - Native applications use relocated XDG paths under `.private`.
   - Legacy applications declare required dot-paths and run in Bubblewrap mount namespaces that bind those paths to `.private`.
   - Monitor unmanaged writes for diagnostics; fanotify/seccomp cannot transparently redirect path resolution.
-- [ ] Pre-generate `/Apps` and `~/.private/Apps` icons/thumbnails before Nautilus displays a directory; keep the Nautilus InfoProvider only as fallback.
+- [x] Pre-generate `/Apps` and `~/.private/Apps` icons before Nautilus displays a directory; keep the Nautilus InfoProvider only as fallback.
 - [ ] Replace directory-sensitive `.desktop` launching with validated ZenOS app tokens and an app broker; normal `.desktop` files outside Apps directories must retain normal behavior.
   - [x] Add stable app tokens, per-view registries, strict managed-entry validation, Nautilus token launches, and ordinary desktop-file fallback.
   - [ ] Move token operations behind a user D-Bus app broker and add inspect/install/remove/settings methods.
