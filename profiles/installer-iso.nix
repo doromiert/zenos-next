@@ -53,6 +53,63 @@ let
     extensionUuid
   ]
   ++ map (extension: extension.extensionUuid) initialExtensionPackages;
+  grubThemeText = pkgs.writeText "zenos-grub-theme.txt" ''
+    title-text: ""
+    desktop-image: "background.png"
+    message-font: "Atkinson Hyperlegible Regular"
+    message-color: "#ffffff"
+    terminal-font: "Atkinson Hyperlegible Regular"
+
+    + image {
+      top = 11%
+      left = 50%-450
+      width = 900
+      height = 120
+      file = "header.png"
+    }
+
+    + boot_menu {
+      left = 50%-440
+      top = 35%
+      width = 880
+      height = 42%
+      item_font = "Atkinson Hyperlegible Regular"
+      item_color = "#d6d6d6"
+      item_height = 56
+      item_spacing = 8
+      item_padding = 24
+      item_icon_space = 24
+      selected_item_font = "Atkinson Hyperlegible Regular"
+      selected_item_color = "#111111"
+      selected_item_pixmap_style = "select_*.png"
+      icon_width = 1
+      icon_height = 1
+      scrollbar = false
+    }
+
+    + progress_bar {
+      id = "__timeout__"
+      left = 50%-440
+      top = 85%
+      width = 880
+      height = 28
+      show_text = false
+      border_color = "#00000000"
+      bg_color = "#00000000"
+      fg_color = "#c532ff"
+      bar_style = "progress_clear_*.png"
+      highlight_style = "progress_fill_*.png"
+      highlight_overlay = false
+    }
+
+    + image {
+      left = 50%-440
+      top = 85%
+      width = 880
+      height = 28
+      file = "progress_track.png"
+    }
+  '';
   grubTheme =
     pkgs.runCommand "zenos-grub-theme"
       {
@@ -62,71 +119,39 @@ let
         ];
       }
       ''
-        install -d "$out"
-        background=${../assets/refind/themes/zenos-picker/background.png}
-        icon=${../assets/refind/themes/zenos-picker/icons/os_zenos.png}
-        font=${pkgs.atkinson-hyperlegible}/share/fonts/opentype/AtkinsonHyperlegible-Regular.otf
-        font_bold=${pkgs.atkinson-hyperlegible}/share/fonts/opentype/AtkinsonHyperlegible-Bold.otf
+                            install -d "$out"
+                            background=${../assets/refind/themes/zenos-picker/background.png}
+                            logo=${inputs.zenos-plymouth-assets}/icons/zenos.svg
+                            font=${pkgs.atkinson-hyperlegible}/share/fonts/opentype/AtkinsonHyperlegible-Regular.otf
+                            font_bold=${pkgs.atkinson-hyperlegible}/share/fonts/opentype/AtkinsonHyperlegible-Bold.otf
 
-        install -m 0644 "$background" "$out/background.png"
-        magick "$background" -resize '800x600^' -gravity center -extent 800x600 \
-          "$out/background-bios.png"
-        magick -size 760x150 xc:none \
-          \( "$icon" -resize 112x112 \) -gravity west -geometry +12+0 -composite \
-          -font "$font_bold" -pointsize 52 -fill white -gravity west \
-          -annotate +160-14 'ZENOS' \
-          -font "$font" -pointsize 24 -fill '#b8b8b8' \
-          -annotate +162+34 'Installer  ${config.zenos.system.release.full}' \
-          "$out/header.png"
-        magick -size 880x56 xc:none -fill white \
-          -draw 'roundrectangle 0,0 879,55 14,14' "$out/select_c.png"
-        grub-mkfont -s 24 -o "$out/atkinson.pf2" "$font"
-
-        cat > "$out/theme.txt" <<'EOF'
-        title-text: ""
-        desktop-image: "background.png"
-        message-font: "Atkinson Hyperlegible Regular"
-        message-color: "#ffffff"
-        terminal-font: "Atkinson Hyperlegible Regular"
-
-        + image {
-          top = 9%
-          left = 50%-380
-          width = 760
-          height = 150
-          file = "header.png"
-        }
-
-        + boot_menu {
-          left = 50%-440
-          top = 35%
-          width = 880
-          height = 42%
-          item_font = "Atkinson Hyperlegible Regular"
-          item_color = "#d6d6d6"
-          item_height = 56
-          item_spacing = 8
-          item_padding = 18
-          selected_item_font = "Atkinson Hyperlegible Regular"
-          selected_item_color = "#111111"
-          selected_item_pixmap_style = "select_*.png"
-          icon_width = 0
-          icon_height = 0
-          scrollbar = false
-        }
-
-        + progress_bar {
-          id = "__timeout__"
-          left = 50%-440
-          top = 86%
-          width = 880
-          height = 5
-          show_text = false
-          border_color = "#1b1b1b"
-          bg_color = "#1b1b1b"
-          fg_color = "#c532ff"
-        }
-        EOF
+                        install -m 0644 "$background" "$out/background.png"
+                        magick "$background" -resize '800x600^' -gravity center -extent 800x600 \
+                          "$out/background-bios.png"
+                        magick -background none -density 1200 "$logo" -resize 64x64 \
+                          -gravity east -splice 24x0 "$out/header-icon.png"
+                            magick -background none -fill white -font "$font" -pointsize 48 \
+                              label:'ZenOS' -gravity east -splice 8x0 "$out/header-name.png"
+                            magick -background none -fill white -font "$font_bold" -pointsize 48 \
+                              label:'${config.zenos.system.release.full}' "$out/header-version.png"
+                            magick "$out/header-icon.png" "$out/header-name.png" "$out/header-version.png" \
+                              -gravity center +append -background none -gravity center -extent 900x120 \
+                              PNG32:"$out/header.png"
+                            rm "$out/header-icon.png" "$out/header-name.png" "$out/header-version.png"
+                        magick -size 880x56 xc:none -fill white \
+                          -draw 'roundrectangle 0,0 879,55 14,14' PNG32:"$out/select_c.png"
+        magick -size 880x28 xc:none -fill '#1b1b1b' \
+          -draw 'roundrectangle 0,0 879,27 14,14' PNG32:"$out/progress_track.png"
+        magick -size 1x1 xc:none PNG32:"$out/progress_clear_c.png"
+        magick -size 28x28 xc:none -fill '#c532ff' \
+          -draw 'circle 14,14 14,0' PNG32:"$out/progress-fill-cap.png"
+        magick "$out/progress-fill-cap.png" -crop 14x28+0+0 +repage \
+          PNG32:"$out/progress_fill_w.png"
+        magick -size 2x28 xc:'#c532ff' PNG24:"$out/progress_fill_c.png"
+        magick -size 2x28 xc:'#c532ff' PNG24:"$out/progress_fill_e.png"
+            rm "$out/progress-fill-cap.png"
+                        grub-mkfont --force-autohint --no-bitmap -s 28 -o "$out/atkinson.pf2" "$font"
+                            install -m 0644 ${grubThemeText} "$out/theme.txt"
       '';
   btopCli = pkgs.runCommand "zenos-btop-cli" { } ''
     install -d "$out/bin"
