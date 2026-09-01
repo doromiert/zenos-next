@@ -100,6 +100,8 @@ in
 assert !finalConfig.zenos.oobe.enable;
 assert oobeConfig.zenos.oobe.enable;
 assert finalConfig.services.displayManager.gdm.enable;
+assert !finalConfig.services.displayManager.autoLogin.enable;
+assert finalConfig.services.displayManager.autoLogin.user == null;
 assert !oobeConfig.services.displayManager.gdm.enable;
 assert finalConfig.system.stateVersion == "26.05";
 assert finalConfig.fileSystems ? "/";

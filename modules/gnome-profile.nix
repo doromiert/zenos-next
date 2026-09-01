@@ -314,7 +314,8 @@ in
     ];
 
     systemd.tmpfiles.rules = lib.optionals cfg.enableBranding (
-      map (
+      [ "d /var/lib/AccountsService/users 0755 root root -" ]
+      ++ map (
         user: "C /var/lib/AccountsService/users/${user} 0644 root root - ${gdmSystemAccount}"
       ) gdmGreeterUsers
     );

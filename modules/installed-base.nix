@@ -33,6 +33,10 @@
   zenos.platform.refind.enable = lib.mkDefault true;
 
   services.displayManager = lib.mkIf config.zenos.desktops.gnome.enable {
+    autoLogin = {
+      enable = lib.mkForce false;
+      user = lib.mkForce null;
+    };
     gdm.enable = lib.mkDefault true;
     defaultSession = lib.mkDefault "gnome";
   };
