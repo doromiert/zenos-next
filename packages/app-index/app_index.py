@@ -14,8 +14,10 @@ import secrets
 import shutil
 import stat
 
+from app_registry import REGISTRY_SCHEMA, app_token, valid_token
 
-INDEX_SCHEMA = 3
+
+INDEX_SCHEMA = 4
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_LAUNCHER_BYTES = 4 * 1024 * 1024
 SOURCE_VIEWS = (
@@ -249,9 +251,11 @@ def _managed_launcher(contents: bytes, legacy: bool) -> bool:
         return False
     if legacy:
         return True
-    return metadata.get("x-zenos-managed", "").casefold() == "true" and metadata.get(
-        "x-zenos-indexversion"
-    ) == str(INDEX_SCHEMA)
+    return (
+        metadata.get("x-zenos-managed", "").casefold() == "true"
+        and metadata.get("x-zenos-indexversion") == str(INDEX_SCHEMA)
+        and valid_token(metadata.get("x-zenos-apptoken"))
+    )
 
 
 def _clean_view(target: Path) -> None:
@@ -269,7 +273,7 @@ def _clean_view(target: Path) -> None:
             applications = manifest["applications"]
         except (KeyError, TypeError, ValueError):
             return
-        if schema not in {1, 2, INDEX_SCHEMA} or not isinstance(applications, list):
+        if schema not in {1, 2, 3, INDEX_SCHEMA} or not isinstance(applications, list):
             return
         if len(applications) > 10000 or not all(
             simple_basename(name) for name in applications
@@ -404,7 +408,9 @@ def icon_file(source: Path, icon: str | None) -> Path | None:
     return None
 
 
-def _metadata_contents(path: Path, source_key: str, source_label: str) -> bytes:
+def _metadata_contents(
+    path: Path, source_key: str, source_label: str, token: str
+) -> bytes:
     contents = path.read_text(encoding="utf-8")
     entry = desktop_entry(path)
     package = package_root(path, source_key)
@@ -412,6 +418,7 @@ def _metadata_contents(path: Path, source_key: str, source_label: str) -> bytes:
     metadata = [
         "X-ZenOS-Managed=true",
         f"X-ZenOS-IndexVersion={INDEX_SCHEMA}",
+        f"X-ZenOS-AppToken={token}",
         f"X-ZenOS-DesktopId={path.name}",
         f"X-ZenOS-Source={source_key}",
         f"X-ZenOS-SourceLabel={source_label}",
@@ -439,7 +446,7 @@ def _metadata_contents(path: Path, source_key: str, source_label: str) -> bytes:
 
 def _write_view(entries: list[tuple[Path, AppSource]], target: Path) -> list[str]:
     target = _real_directory(target, create=True)
-    rendered: list[tuple[str, bytes]] = []
+    rendered: list[tuple[str, bytes, dict[str, str]]] = []
     used_names: set[str] = set()
     for desktop_file, source in entries:
         try:
@@ -449,17 +456,34 @@ def _write_view(entries: list[tuple[Path, AppSource]], target: Path) -> list[str
                 desktop_file.name,
                 used_names,
             )
-            contents = _metadata_contents(desktop_file, source.key, source.label)
+            token = app_token(source.key, desktop_file.name)
+            contents = _metadata_contents(
+                desktop_file, source.key, source.label, token
+            )
         except (configparser.Error, KeyError, OSError, UnicodeError, ValueError):
             continue
         used_names.add(destination_name)
-        rendered.append((destination_name, contents))
+        rendered.append(
+            (
+                destination_name,
+                contents,
+                {
+                    "token": token,
+                    "launcher": destination_name,
+                    "desktopId": desktop_file.name,
+                    "source": source.key,
+                    "sourcePath": str(Path(os.path.abspath(desktop_file))),
+                },
+            )
+        )
 
     _clean_view(target)
     indexed = []
-    for destination_name, contents in rendered:
+    registrations = []
+    for destination_name, contents, registration in rendered:
         _atomic_write(target, destination_name, contents, 0o755)
         indexed.append(destination_name)
+        registrations.append(registration)
     manifest = (
         json.dumps(
             {"schema": INDEX_SCHEMA, "applications": indexed},
@@ -468,6 +492,14 @@ def _write_view(entries: list[tuple[Path, AppSource]], target: Path) -> list[str
         + b"\n"
     )
     _atomic_write(target, ".zenos-app-index.json", manifest, 0o644)
+    registry = (
+        json.dumps(
+            {"schema": REGISTRY_SCHEMA, "applications": registrations},
+            indent=2,
+        ).encode("utf-8")
+        + b"\n"
+    )
+    _atomic_write(target, ".zenos-app-registry.json", registry, 0o644)
     return indexed
 
 

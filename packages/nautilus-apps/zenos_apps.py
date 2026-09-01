@@ -5,6 +5,7 @@ from __future__ import annotations
 import configparser
 import os
 from pathlib import Path
+import re
 import stat
 from typing import List
 from urllib.parse import unquote, urlparse
@@ -13,6 +14,7 @@ from gi.repository import Gio, GLib, GObject, Gtk, Nautilus
 
 
 APPS_ROOT = Path("/Apps")
+APP_TOKEN = re.compile(r"^[0-9a-f]{64}$")
 ZEN_APP_LAUNCH = "@zen_app_launch@"
 ZEN_APPIMAGE = "@zen_appimage@"
 SOURCE_VIEWS = (
@@ -64,7 +66,7 @@ def appimage_path(file_info: Nautilus.FileInfo) -> Path | None:
 
 def desktop_details(
     path: Path,
-) -> tuple[Gio.DesktopAppInfo | None, str | None, str | None]:
+) -> tuple[Gio.DesktopAppInfo | None, str | None, str | None, str | None]:
     app = Gio.DesktopAppInfo.new_from_filename(str(path))
     parser = configparser.ConfigParser(interpolation=None, strict=False)
     parser.optionxform = str
@@ -76,7 +78,8 @@ def desktop_details(
         }
         if (
             metadata.get("x-zenos-managed", "").casefold() != "true"
-            or metadata.get("x-zenos-indexversion") != "3"
+            or metadata.get("x-zenos-indexversion") != "4"
+            or APP_TOKEN.fullmatch(metadata.get("x-zenos-apptoken", "")) is None
             or metadata.get("x-zenos-source")
             not in {
                 "nix-config",
@@ -85,9 +88,10 @@ def desktop_details(
                 "manual",
             }
         ):
-            return None, None, None
+            return None, None, None, None
         package = metadata.get("x-zenos-package")
         icon_file = metadata.get("x-zenos-iconfile")
+        token = metadata["x-zenos-apptoken"]
         if package and (not Path(package).is_absolute() or not Path(package).is_dir()):
             package = None
         if icon_file and (
@@ -97,7 +101,8 @@ def desktop_details(
     except (configparser.Error, KeyError, OSError, UnicodeError):
         package = None
         icon_file = None
-    return app, package, icon_file
+        token = None
+    return app, package, icon_file, token
 
 
 class ZenOSAppsExtension(
@@ -109,7 +114,7 @@ class ZenOSAppsExtension(
         path = launcher_path(file_info)
         if path is None:
             return
-        app, package, icon_file = desktop_details(path)
+        app, package, icon_file, _token = desktop_details(path)
         if app is None:
             return
 
@@ -142,9 +147,9 @@ class ZenOSAppsExtension(
         if package:
             file_info.add_string_attribute("zenos_package", package)
 
-    def _launch(self, _item: Nautilus.MenuItem, path: Path) -> None:
+    def _launch(self, _item: Nautilus.MenuItem, token: str) -> None:
         Gio.Subprocess.new(
-            [ZEN_APP_LAUNCH, str(path)],
+            [ZEN_APP_LAUNCH, "--token", token],
             Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
         )
 
@@ -182,15 +187,15 @@ class ZenOSAppsExtension(
         path = launcher_path(files[0])
         if path is None:
             return []
-        app, package, _icon_file = desktop_details(path)
-        if app is None:
+        app, package, _icon_file, token = desktop_details(path)
+        if app is None or token is None:
             return []
 
         launch = Nautilus.MenuItem(
             name="ZenOSApps::Launch",
             label=f"Launch {app.get_name()}",
         )
-        launch.connect("activate", self._launch, path)
+        launch.connect("activate", self._launch, token)
         items = [launch]
 
         if package:

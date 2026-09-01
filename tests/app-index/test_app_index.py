@@ -11,6 +11,7 @@ from app_index import (
     desktop_entry,
     desktop_visible,
 )
+from app_registry import app_token
 
 
 class AppIndexTests(unittest.TestCase):
@@ -151,6 +152,18 @@ class AppIndexTests(unittest.TestCase):
                     "Manually Installed",
                 ],
                 [view["label"] for view in manifest["views"]],
+            )
+            registry = json.loads(
+                (target / ".zenos-app-registry.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(1, registry["schema"])
+            self.assertEqual(
+                app_token("manual", "editor.desktop"),
+                registry["applications"][0]["token"],
+            )
+            self.assertEqual(
+                registry["applications"][0]["token"],
+                desktop_entry(target / "Manual Editor")["X-ZenOS-AppToken"],
             )
 
     def test_records_owning_nix_package(self) -> None:

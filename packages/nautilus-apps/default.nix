@@ -20,6 +20,7 @@ stdenvNoCC.mkDerivation {
       --replace-fail '@zen_app_launch@' "$out/bin/zen-app-launch" \
       --replace-fail '@zen_appimage@' "${appIndex}/bin/zen-appimage"
     install -Dm755 ${./zen_app_launch.py} "$out/bin/zen-app-launch"
+    install -Dm644 ${../app-index/app_registry.py} "$out/bin/app_registry.py"
     substituteInPlace "$out/bin/zen-app-launch" \
       --replace-fail '#!/usr/bin/env python3' '#!${pythonEnv}/bin/python3'
     install -Dm644 /dev/stdin \

@@ -81,13 +81,15 @@
 - [x] Keep editable configuration under `/Config/ZenOS` without the obsolete nested `Flake` directory.
 - [x] Add typed `system.services.ssh` ZCFG settings and validate the live SSH service.
 - [x] Add the first-class per-user PWA adapter and Home Manager integration to ZenPkgs.
-- [ ] Delete Forge's stray `~/undefined.bak` whenever it appears; fix Forge upstream if possible and retain cleanup as a defensive fallback.
+- [x] Delete Forge's stray `~/undefined.bak` whenever it appears; fix the packaged source and retain cleanup as a defensive fallback.
 - [ ] Remove visible `.cache`, `.config`, and `.local` compatibility paths in strict ZenFS mode.
   - Native applications use relocated XDG paths under `.private`.
   - Legacy applications declare required dot-paths and run in Bubblewrap mount namespaces that bind those paths to `.private`.
   - Monitor unmanaged writes for diagnostics; fanotify/seccomp cannot transparently redirect path resolution.
 - [ ] Pre-generate `/Apps` and `~/.private/Apps` icons/thumbnails before Nautilus displays a directory; keep the Nautilus InfoProvider only as fallback.
 - [ ] Replace directory-sensitive `.desktop` launching with validated ZenOS app tokens and an app broker; normal `.desktop` files outside Apps directories must retain normal behavior.
+  - [x] Add stable app tokens, per-view registries, strict managed-entry validation, Nautilus token launches, and ordinary desktop-file fallback.
+  - [ ] Move token operations behind a user D-Bus app broker and add inspect/install/remove/settings methods.
 - [ ] Build a proper app details window for manifest information, desktop-entry editing, compatibility settings, and app actions.
 - [ ] Add first-class Flatpak support to the app index, details UI, and install/remove flows.
 - [ ] Complete AppImage support in the app index, details UI, and install/remove flows.
@@ -95,7 +97,7 @@
   - Use isolated Wine prefixes for general desktop applications.
   - Use UMU-Proton for games; do not treat raw Proton as a general-purpose default runner.
   - Let users choose the runner/compatibility layer per app through the app details window.
-- [ ] Ensure `/mnt` exists before `/Mount` is created and validate the default mount hierarchy on fresh installs.
+- [x] Ensure `/mnt` exists before `/Mount` is created and validate the default mount hierarchy on fresh installs.
 - [ ] Make `/Users` the canonical real home root and reverse compatibility to `/home -> /Users`; provide stricter per-app namespace compatibility later.
 - [x] Enable Firefox customization by default for new installs and in the Setup software defaults.
 - [ ] Document and rationalize the currently shipped custom command set.

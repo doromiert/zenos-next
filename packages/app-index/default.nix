@@ -12,6 +12,7 @@ let
     name = "zen-app-index";
     runtimeInputs = [ python3 ];
     text = ''
+      export PYTHONPATH=${./.}
       exec python3 ${./app_index.py} "$@"
     '';
   };

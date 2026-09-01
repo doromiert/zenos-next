@@ -11,8 +11,10 @@ import stat
 import sys
 from typing import Mapping, Sequence
 
+from app_registry import REGISTRY_SCHEMA, valid_token
 
-INDEX_SCHEMA = 3
+
+INDEX_SCHEMA = 4
 MAX_FILE_BYTES = 4 * 1024 * 1024
 SOURCE_LABELS = {
     "nix-config": "Nix (Config)",
@@ -119,6 +121,54 @@ def _manifest_contains(view: Path, launcher_name: str) -> bool:
     )
 
 
+def _registry_records(view: Path) -> list[dict[str, str]]:
+    try:
+        registry = json.loads(
+            _read_regular(view / ".zenos-app-registry.json", 1024 * 1024)
+        )
+        applications = registry["applications"]
+    except (KeyError, OSError, TypeError, ValueError, UnicodeError):
+        return []
+    if (
+        registry.get("schema") != REGISTRY_SCHEMA
+        or not isinstance(applications, list)
+        or len(applications) > 10000
+    ):
+        return []
+    records = []
+    for application in applications:
+        if not isinstance(application, dict):
+            return []
+        record = {
+            key: application.get(key)
+            for key in ("token", "launcher", "desktopId", "source", "sourcePath")
+        }
+        if (
+            not valid_token(record["token"])
+            or not _simple_basename(record["launcher"])
+            or not _simple_basename(record["desktopId"])
+            or record["source"] not in SOURCE_LABELS
+            or not isinstance(record["sourcePath"], str)
+            or not Path(record["sourcePath"]).is_absolute()
+        ):
+            return []
+        records.append(record)
+    return records
+
+
+def _registry_contains(
+    view: Path, launcher_name: str, metadata: Mapping[str, str]
+) -> bool:
+    expected = {
+        "token": metadata.get("x-zenos-apptoken"),
+        "launcher": launcher_name,
+        "desktopId": metadata.get("x-zenos-desktopid"),
+        "source": metadata.get("x-zenos-source"),
+        "sourcePath": metadata.get("x-zenos-sourcepath"),
+    }
+    return any(record == expected for record in _registry_records(view))
+
+
 def validate_launcher(
     value: Path,
     apps_root: Path = Path("/Apps"),
@@ -141,11 +191,13 @@ def validate_launcher(
         raise ValueError("launcher is not recorded by the app index")
     _parser, metadata = _metadata(contents)
     source = metadata.get("x-zenos-source")
+    token = metadata.get("x-zenos-apptoken")
     desktop_id = metadata.get("x-zenos-desktopid")
     source_path_value = metadata.get("x-zenos-sourcepath")
     if (
         metadata.get("x-zenos-managed", "").casefold() != "true"
         or metadata.get("x-zenos-indexversion") != str(INDEX_SCHEMA)
+        or not valid_token(token)
         or source not in SOURCE_LABELS
         or metadata.get("x-zenos-sourcelabel") != SOURCE_LABELS[source]
         or not _simple_basename(desktop_id)
@@ -168,16 +220,71 @@ def validate_launcher(
             raise ValueError("launcher source is not a desktop file")
     except OSError as error:
         raise ValueError("launcher source no longer exists") from error
+    if not _registry_contains(views[view_key], candidate.name, metadata):
+        raise ValueError("launcher is not recorded by the app registry")
     return candidate
 
 
+def validate_ordinary_launcher(value: Path) -> Path:
+    candidate = Path(os.path.abspath(value))
+    contents = _read_regular(candidate, MAX_FILE_BYTES)
+    _parser, metadata = _metadata(contents)
+    if metadata.get("type") != "Application":
+        raise ValueError("ordinary desktop file is not an application")
+    if any(key.startswith("x-zenos-") for key in metadata):
+        raise ValueError("managed launcher metadata is invalid outside Apps")
+    return candidate
+
+
+def resolve_launcher(
+    value: Path,
+    apps_root: Path = Path("/Apps"),
+    roots: Mapping[str, Sequence[Path]] | None = None,
+) -> Path:
+    root = _real_directory(apps_root)
+    candidate = Path(os.path.abspath(value))
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return validate_ordinary_launcher(candidate)
+    return validate_launcher(candidate, root, roots)
+
+
+def resolve_token(
+    token: str,
+    apps_root: Path = Path("/Apps"),
+    roots: Mapping[str, Sequence[Path]] | None = None,
+) -> Path:
+    if not valid_token(token):
+        raise ValueError("invalid application token")
+    root = _real_directory(apps_root)
+    views = [root]
+    for source in SOURCE_LABELS:
+        view = root / ".sources" / source
+        if view.exists():
+            views.append(_real_directory(view))
+    for view in views:
+        for record in _registry_records(view):
+            if record["token"] == token:
+                return validate_launcher(view / record["launcher"], root, roots)
+    raise ValueError("application token is not registered")
+
+
 def main() -> int:
-    if len(sys.argv) != 2:
+    if len(sys.argv) == 3 and sys.argv[1] == "--token":
+        mode = "token"
+        value = sys.argv[2]
+    elif len(sys.argv) == 2:
+        mode = "path"
+        value = sys.argv[1]
+    else:
         return 2
     try:
-        launcher = validate_launcher(
-            Path(sys.argv[1]),
-            Path(os.environ.get("ZENOS_APPS_DIR", "/Apps")),
+        apps_root = Path(os.environ.get("ZENOS_APPS_DIR", "/Apps"))
+        launcher = (
+            resolve_token(value, apps_root)
+            if mode == "token"
+            else resolve_launcher(Path(value), apps_root)
         )
     except (configparser.Error, KeyError, OSError, UnicodeError, ValueError) as error:
         print(f"zen-app-launch: {error}", file=sys.stderr)
