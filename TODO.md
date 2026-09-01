@@ -104,7 +104,7 @@
 - [x] Ensure `/mnt` exists before `/Mount` is created and validate the default mount hierarchy on fresh installs.
 - [x] Make `/Users` the canonical real home root and reverse compatibility to `/home -> /Users`; provide stricter per-app namespace compatibility later.
 - [x] Enable Firefox customization by default for new installs and in the Setup software defaults.
-- [ ] Document and rationalize the currently shipped custom command set.
+- [x] Document and rationalize the currently shipped custom command set.
 - [ ] Make every program option enable its package automatically; add program modules for all applications selectable in Setup.
 - [ ] Add proper configurable modules for every shipped GNOME extension and expose their settings through ZCFG.
 - [ ] Map `zenos.system.disks` declaratively to Disko.

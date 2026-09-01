@@ -8,6 +8,9 @@ The system and ZenPkgs are pinned to the NixOS 26.05 channel. ZenPkgs wraps
 upstream packages without copying their build recipes, attaches ZenOS metadata,
 and exposes curated paths such as `pkgs.zenos.catalog.firefox`.
 
+The supported and internal command surfaces are documented in
+[`docs/commands.md`](docs/commands.md).
+
 ## Build outputs
 
 ```sh
