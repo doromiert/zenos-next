@@ -25,6 +25,16 @@ let
   zenfsctl = pkgs.callPackage ../../packages/zenfsctl { };
   appIndex = pkgs.callPackage ../../packages/app-index { };
   nautilusApps = pkgs.callPackage ../../packages/nautilus-apps { inherit appIndex; };
+  userAppIndex = pkgs.writeShellApplication {
+    name = "zenos-user-app-index";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      home="$(realpath -- "$HOME")"
+      ${lib.getExe appIndex} --home "$home" --target "$home/.private/Apps" --user "$USER"
+      ${nautilusApps}/bin/zen-app-icons /Apps
+      ${nautilusApps}/bin/zen-app-icons "$home/.private/Apps"
+    '';
+  };
   hasManagedUsers = cfg.users != { };
   managedIdentityPatterns = concatMapStringsSep "|" escapeShellArg (
     mapAttrsToList (name: userCfg: "${name}:${getUserHome name userCfg}") cfg.users
@@ -771,11 +781,7 @@ in
       unitConfig.ConditionPathIsDirectory = "%h/.private/Apps";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = [
-          "${lib.getExe appIndex} --home %h --target %h/.private/Apps --user %u"
-          "${nautilusApps}/bin/zen-app-icons /Apps"
-          "${nautilusApps}/bin/zen-app-icons %h/.private/Apps"
-        ];
+        ExecStart = lib.getExe userAppIndex;
         RemainAfterExit = true;
       };
     };

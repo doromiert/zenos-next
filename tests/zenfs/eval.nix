@@ -104,9 +104,8 @@ assert cfg.systemd.user.services.zenos-user-app-index.serviceConfig.Type == "one
 assert
   cfg.systemd.user.services.zenos-user-app-index.unitConfig.ConditionPathIsDirectory
   == "%h/.private/Apps";
-assert nixpkgs.lib.hasInfix "%h/.private/Apps" (
-  builtins.head cfg.systemd.user.services.zenos-user-app-index.serviceConfig.ExecStart
-);
+assert nixpkgs.lib.hasInfix "zenos-user-app-index"
+  cfg.systemd.user.services.zenos-user-app-index.serviceConfig.ExecStart;
 assert cfg.zenfs.hierarchy.aliases."/home" == "/Users";
 assert builtins.elem "/Users" cfg.zenfs.hierarchy.directories;
 assert nixpkgs.lib.hasInfix "refusing to migrate a separately mounted /home"
