@@ -12,27 +12,27 @@
     # popcorn.url = "github:zenos-n/popcorn";
 
     zenpkgs = {
-      url = "path:/home/doromiert/Projects/zenpkgs";
+      url = "github:zenos-n/zenpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     zenos-setup = {
-      url = "path:/home/doromiert/Projects/ZenOS-Setup";
+      url = "github:zenos-n/zenos-setup";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     zenos-oobe-mode = {
-      url = "path:/home/doromiert/Projects/zenos-oobe-mode@zenos.local";
+      url = "github:zenos-n/zenos-oobe-mode-extension";
       flake = false;
     };
 
     zenos-plymouth-assets = {
-      url = "path:/home/doromiert/Projects/zenpkgs/pkgs/theming/system/zenos-plymouth/src";
+      url = "github:zenos-n/plymouth-theme";
       flake = false;
     };
 
     zerobridge = {
-      url = "path:/home/doromiert/Projects/zerobridge";
+      url = "github:doromiert/zerobridge";
       flake = false;
     };
   };

@@ -318,11 +318,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1787962033,
-        "narHash": "sha256-u6z9VTZA4Kf3RkHQo9sQI7NI4Ei/uiU9vrMqOiwWP1Y=",
+        "lastModified": 1788187754,
+        "narHash": "sha256-bu1QxmXKmPuvBLN7bHP355OV9Qo13x9WCiRDH62CqRM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "c5c4a43b0e8056328ec4529f735cabdb8f1942bb",
+        "rev": "5dfba6236110080a54247d6460bc2ff5dda939cc",
         "type": "github"
       },
       "original": {
@@ -562,27 +562,33 @@
     "zenos-oobe-mode": {
       "flake": false,
       "locked": {
-        "lastModified": 1788212284,
-        "narHash": "sha256-SK+h+pB/FmoHNhmj7RuXJR7K5S6Lq4nmSICpGvs/Rc0=",
-        "path": "/home/doromiert/Projects/zenos-oobe-mode@zenos.local",
-        "type": "path"
+        "lastModified": 1788259635,
+        "narHash": "sha256-VUI65sW0yNcS4TVu0HHmRIpL4q2PxNCHw1Kxx3zBnGc=",
+        "owner": "zenos-n",
+        "repo": "zenos-oobe-mode-extension",
+        "rev": "1e93ab1571163f37a1355bfc9d985fb906930178",
+        "type": "github"
       },
       "original": {
-        "path": "/home/doromiert/Projects/zenos-oobe-mode@zenos.local",
-        "type": "path"
+        "owner": "zenos-n",
+        "repo": "zenos-oobe-mode-extension",
+        "type": "github"
       }
     },
     "zenos-plymouth-assets": {
       "flake": false,
       "locked": {
-        "lastModified": 1778440335,
-        "narHash": "sha256-gWPHldIHMfzABrQvPkgmbfiSWGtw2eN5sXkFX9Da5oA=",
-        "path": "/home/doromiert/Projects/zenpkgs/pkgs/theming/system/zenos-plymouth/src",
-        "type": "path"
+        "lastModified": 1778440329,
+        "narHash": "sha256-ltX1704M5umTuq78HfapUdUHB1Esfa8PUoSsk7Tg1DU=",
+        "owner": "zenos-n",
+        "repo": "plymouth-theme",
+        "rev": "e6478d286075ec85ca8827d3625ed7ecd508c656",
+        "type": "github"
       },
       "original": {
-        "path": "/home/doromiert/Projects/zenpkgs/pkgs/theming/system/zenos-plymouth/src",
-        "type": "path"
+        "owner": "zenos-n",
+        "repo": "plymouth-theme",
+        "type": "github"
       }
     },
     "zenos-setup": {
@@ -592,14 +598,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1788261196,
-        "narHash": "sha256-dkbcpC4TA7TkJ0g8/A+g43ayoYwEdj5dHWAHl3o+Udw=",
-        "path": "/home/doromiert/Projects/ZenOS-Setup",
-        "type": "path"
+        "lastModified": 1788288082,
+        "narHash": "sha256-zBLzhLbN1cMCwDtwQzik8iaCPHDgRsRPvu6GU1idTqY=",
+        "owner": "zenos-n",
+        "repo": "zenos-setup",
+        "rev": "3533d8caea1d66d5bcab78bea6be388637f16ec3",
+        "type": "github"
       },
       "original": {
-        "path": "/home/doromiert/Projects/ZenOS-Setup",
-        "type": "path"
+        "owner": "zenos-n",
+        "repo": "zenos-setup",
+        "type": "github"
       }
     },
     "zenpkgs": {
@@ -619,27 +628,33 @@
         "vsc-extensions": "vsc-extensions"
       },
       "locked": {
-        "lastModified": 1788275881,
-        "narHash": "sha256-8AqiJd9Xiu0w60kISUUDE8bC3Fxnl7K6RVAdc3G28GM=",
-        "path": "/home/doromiert/Projects/zenpkgs",
-        "type": "path"
+        "lastModified": 1788288360,
+        "narHash": "sha256-2QsZGiGSZML77RrkaEyF1xiWCRFfHn4IWCdYVOMFUsM=",
+        "owner": "zenos-n",
+        "repo": "zenpkgs",
+        "rev": "8956cdd4255499c1d20cb9523f9b7502fd74ef02",
+        "type": "github"
       },
       "original": {
-        "path": "/home/doromiert/Projects/zenpkgs",
-        "type": "path"
+        "owner": "zenos-n",
+        "repo": "zenpkgs",
+        "type": "github"
       }
     },
     "zerobridge": {
       "flake": false,
       "locked": {
-        "lastModified": 1787921868,
-        "narHash": "sha256-evxgmWQx+neTOdJsNOhlf2U3vJktBFyZdUcwuzTAyU0=",
-        "path": "/home/doromiert/Projects/zerobridge",
-        "type": "path"
+        "lastModified": 1788259635,
+        "narHash": "sha256-tYlxxAfXLlXgL206a9ivYiLnVn+EnV4JrhRTCMLVKNU=",
+        "owner": "doromiert",
+        "repo": "zerobridge",
+        "rev": "a2ca3c681258d56706e75b2fbea31907caf9081f",
+        "type": "github"
       },
       "original": {
-        "path": "/home/doromiert/Projects/zerobridge",
-        "type": "path"
+        "owner": "doromiert",
+        "repo": "zerobridge",
+        "type": "github"
       }
     }
   },
