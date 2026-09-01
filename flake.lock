@@ -619,8 +619,8 @@
         "vsc-extensions": "vsc-extensions"
       },
       "locked": {
-        "lastModified": 1788256730,
-        "narHash": "sha256-p4ovFR272tZW27wI7bRtTBtx6ncI8N0ktFNGZxfeN64=",
+        "lastModified": 1788266221,
+        "narHash": "sha256-dSkEPLv7YyzGixLsZzClINm1qN4bJ1yao+rM64/PdkA=",
         "path": "/home/doromiert/Projects/zenpkgs",
         "type": "path"
       },

@@ -209,7 +209,10 @@ let
                         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH4+fQMTy7FaLwqDOumL1y3uW+WMWpoc12MEeQXeF+VF zenos-next-vm-debug"
                       ];
                     };
-                    environment.systemPackages = [ (mkNautilusApps pkgs) ]
+                    environment.systemPackages = [
+                      (mkNautilusApps pkgs)
+                      pkgs.zenos.apps.system.nautilus-python
+                    ]
                       ++ lib.optional oobeEnabled (mkZcfgPackage pkgs);
                     systemd.user.services.zenos-oobe.environment.ZENOS_SETUP_DRY_RUN =
                       lib.mkIf oobeEnabled "0";

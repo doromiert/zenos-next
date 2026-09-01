@@ -8,17 +8,24 @@
 let
   cfg = config.zenos.gnomeProfile;
   emptyStringArray = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
-  directionKey = direction: if cfg.directionKeys == "vim" then {
-    left = "h";
-    down = "j";
-    up = "k";
-    right = "l";
-  }.${direction} else {
-    left = "Left";
-    down = "Down";
-    up = "Up";
-    right = "Right";
-  }.${direction};
+  directionKey =
+    direction:
+    if cfg.directionKeys == "vim" then
+      {
+        left = "h";
+        down = "j";
+        up = "k";
+        right = "l";
+      }
+      .${direction}
+    else
+      {
+        left = "Left";
+        down = "Down";
+        up = "Up";
+        right = "Right";
+      }
+      .${direction};
   directionSettings = {
     "org/gnome/desktop/wm/keybindings" = {
       switch-to-workspace-left = [ "<Super><Control>${directionKey "left"}" ];
@@ -87,15 +94,29 @@ let
       -resize 256x256 "$out/share/pixmaps/zenos-gdm.png"
   '';
   lockClockUuid = "CustomizeClockOnLockScreen@pratap.fastmail.fm";
-  lockClockExtension = pkgs.runCommand "gnome-shell-extension-zenos-lock-clock" {
-    nativeBuildInputs = [ pkgs.jq ];
-  } ''
-    cp -R ${pkgs.gnomeExtensions.customize-clock-on-lock-screen}/. "$out"
-    chmod -R u+w "$out"
-    metadata="$out/share/gnome-shell/extensions/${lockClockUuid}/metadata.json"
-    jq '."shell-version" |= (. + ["50"] | unique)' "$metadata" > "$metadata.tmp"
-    mv "$metadata.tmp" "$metadata"
+  lockClockExtension =
+    pkgs.runCommand "gnome-shell-extension-zenos-lock-clock"
+      {
+        nativeBuildInputs = [ pkgs.jq ];
+      }
+      ''
+        cp -R ${pkgs.gnomeExtensions.customize-clock-on-lock-screen}/. "$out"
+        chmod -R u+w "$out"
+        metadata="$out/share/gnome-shell/extensions/${lockClockUuid}/metadata.json"
+        jq '."shell-version" |= (. + ["50"] | unique)' "$metadata" > "$metadata.tmp"
+        mv "$metadata.tmp" "$metadata"
+      '';
+  gdmSystemAccount = pkgs.writeText "zenos-gdm-system-account" ''
+    [User]
+    SystemAccount=true
   '';
+  gdmGreeterUsers = [
+    "gdm-greeter"
+    "gdm-greeter-2"
+    "gdm-greeter-3"
+    "gdm-greeter-4"
+    "gdm-greeter-5"
+  ];
   clockTheme = pkgs.runCommand "zenos-clock-theme" { } ''
     install -d "$out/share/themes/ClockOverride/gnome-shell"
     cat > "$out/share/themes/ClockOverride/gnome-shell/gnome-shell.css" <<'EOF'
@@ -125,12 +146,18 @@ in
       description = "Whether the ZenOS GNOME extension set is installed and enabled.";
     };
     directionKeys = lib.mkOption {
-      type = lib.types.enum [ "standard" "vim" ];
+      type = lib.types.enum [
+        "standard"
+        "vim"
+      ];
       default = "vim";
       description = "Directional key family used by ZenOS navigation shortcuts.";
     };
     actionKeys = lib.mkOption {
-      type = lib.types.enum [ "traditional" "zenos" ];
+      type = lib.types.enum [
+        "traditional"
+        "zenos"
+      ];
       default = "zenos";
       description = "Action shortcut profile used by the GNOME session.";
     };
@@ -162,99 +189,113 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = lib.optionals cfg.enableBranding [
-      clockTheme
-      gdmLogo
-      lockClockExtension
-      pkgs.zenos.apps.cursors.google-dot
-      pkgs.zenos.apps.themes.adw-gtk3
-      pkgs.zenos.theming.fonts.zero.mono
-      pkgs.zenos.theming.icons.adwaita-hacks
-    ] ++ lib.optionals cfg.enableExtensions cfg.extensionPackages;
+    environment.systemPackages =
+      lib.optionals cfg.enableBranding [
+        clockTheme
+        gdmLogo
+        lockClockExtension
+        pkgs.zenos.apps.cursors.google-dot
+        pkgs.zenos.apps.themes.adw-gtk3
+        pkgs.zenos.theming.fonts.zero.mono-thin
+        pkgs.zenos.theming.fonts.zero.regular
+        pkgs.zenos.theming.icons.adwaita-hacks
+      ]
+      ++ lib.optionals cfg.enableExtensions cfg.extensionPackages;
 
     programs.dconf.profiles.user.databases = [
       {
-        settings = lib.optionalAttrs cfg.enableBranding ({
-          "org/gnome/desktop/interface" = {
-            accent-color = "purple";
-            color-scheme = "prefer-dark";
-            cursor-size = lib.gvariant.mkInt32 24;
-            cursor-theme = "GoogleDot-Black";
-            document-font-name = "Atkinson Hyperlegible 11";
-            font-name = "Atkinson Hyperlegible 11";
-            gtk-theme = "adw-gtk3-dark";
-            icon-theme = "Adwaita-hacks";
-            monospace-font-name = "AtkynsonMono NF 11";
-            show-battery-percentage = true;
-          };
-        } // lib.optionalAttrs (cfg.wallpaper != null) {
-          "org/gnome/desktop/background" = {
-            color-shading-type = "solid";
-            picture-options = "zoom";
-            picture-uri = "file://${cfg.wallpaper}";
-            picture-uri-dark = "file://${cfg.wallpaper}";
-            primary-color = "#000000";
-            secondary-color = "#000000";
-          };
-        }) // lib.optionalAttrs cfg.enableExtensions {
-          "org/gnome/shell" = {
-            disable-user-extensions = false;
-          } // lib.optionalAttrs cfg.manageExtensions {
-            enabled-extensions = cfg.enabledExtensionUuids ++ lib.optional cfg.enableBranding lockClockUuid;
-          };
-          "org/gnome/shell/extensions/customize-clock-on-lockscreen" = {
-            remove-command-output = true;
-            remove-time = false;
-            remove-date = false;
-            remove-hint = false;
-            custom-time-text = "%H\n%M";
-            custom-date-text = "%d.%m.%Y";
-            clock-style = "digital";
-            time-font-color = "rgba(255, 255, 255, 1.0)";
-            time-font-size = lib.gvariant.mkInt32 96;
-            time-font-family = "Zero Mono";
-            time-font-weight = "Default";
-            time-font-style = "Default";
-            date-font-color = "rgba(255, 255, 255, 1.0)";
-            date-font-size = lib.gvariant.mkInt32 36;
-            date-font-family = "Zero Mono";
-            date-font-weight = "Default";
-            date-font-style = "Default";
-          };
-          "org/gnome/shell/extensions/coverflowalttab" = {
-            desaturate-factor = 0.0;
-            icon-style = "Classic";
-            use-glitch-effect = true;
-          };
-          "org/gnome/shell/extensions/date-menu-formatter" = {
-            font-size = lib.gvariant.mkInt32 12;
-            formatter = "01_luxon";
-            pattern = "dd.MM  HH:mm";
-            text-align = "center";
-            update-level = lib.gvariant.mkInt32 1;
-          };
-          "org/gnome/shell/extensions/forge" = {
-            dnd-center-layout = "swap";
-            float-always-on-top-enabled = false;
-            focus-border-toggle = false;
-            quick-settings-enabled = false;
-            split-border-toggle = false;
-            stacked-tiling-mode-enabled = false;
-            tabbed-tiling-mode-enabled = false;
-            window-gap-size = lib.gvariant.mkUint32 4;
-          };
-          "org/gnome/shell/extensions/mouse-tail".render-mode = "precise";
-          "org/gnome/shell/extensions/notification-timeout".timeout = lib.gvariant.mkInt32 2000;
-        } // lib.optionalAttrs cfg.enableBranding {
-          "org/gnome/shell/extensions/user-theme".name = "ClockOverride";
-        } // shortcutSettings;
+        settings =
+          lib.optionalAttrs cfg.enableBranding (
+            {
+              "org/gnome/desktop/interface" = {
+                accent-color = "purple";
+                color-scheme = "prefer-dark";
+                cursor-size = lib.gvariant.mkInt32 24;
+                cursor-theme = "GoogleDot-Black";
+                document-font-name = "Atkinson Hyperlegible 11";
+                font-name = "Atkinson Hyperlegible 11";
+                gtk-theme = "adw-gtk3-dark";
+                icon-theme = "Adwaita-hacks";
+                monospace-font-name = "AtkynsonMono NF 11";
+                show-battery-percentage = true;
+              };
+            }
+            // lib.optionalAttrs (cfg.wallpaper != null) {
+              "org/gnome/desktop/background" = {
+                color-shading-type = "solid";
+                picture-options = "zoom";
+                picture-uri = "file://${cfg.wallpaper}";
+                picture-uri-dark = "file://${cfg.wallpaper}";
+                primary-color = "#000000";
+                secondary-color = "#000000";
+              };
+            }
+          )
+          // lib.optionalAttrs cfg.enableExtensions {
+            "org/gnome/shell" = {
+              disable-user-extensions = false;
+            }
+            // lib.optionalAttrs cfg.manageExtensions {
+              enabled-extensions = cfg.enabledExtensionUuids ++ lib.optional cfg.enableBranding lockClockUuid;
+            };
+            "org/gnome/shell/extensions/customize-clock-on-lockscreen" = {
+              remove-command-output = true;
+              remove-time = false;
+              remove-date = false;
+              remove-hint = false;
+              custom-time-text = "%H\n%M";
+              custom-date-text = "%d.%m.%Y";
+              clock-style = "digital";
+              time-font-color = "rgba(255, 255, 255, 1.0)";
+              time-font-size = lib.gvariant.mkInt32 96;
+              time-font-family = "Zero Mono Thin";
+              time-font-weight = "Thin";
+              time-font-style = "Default";
+              date-font-color = "rgba(255, 255, 255, 1.0)";
+              date-font-size = lib.gvariant.mkInt32 24;
+              date-font-family = "Zero";
+              date-font-weight = "Default";
+              date-font-style = "Default";
+            };
+            "org/gnome/shell/extensions/coverflowalttab" = {
+              desaturate-factor = 0.0;
+              icon-style = "Classic";
+              use-glitch-effect = true;
+            };
+            "org/gnome/shell/extensions/date-menu-formatter" = {
+              font-size = lib.gvariant.mkInt32 12;
+              formatter = "01_luxon";
+              pattern = "dd.MM  HH:mm";
+              text-align = "center";
+              update-level = lib.gvariant.mkInt32 1;
+            };
+            "org/gnome/shell/extensions/forge" = {
+              dnd-center-layout = "swap";
+              float-always-on-top-enabled = false;
+              focus-border-toggle = false;
+              quick-settings-enabled = false;
+              split-border-toggle = false;
+              stacked-tiling-mode-enabled = false;
+              tabbed-tiling-mode-enabled = false;
+              window-gap-size = lib.gvariant.mkUint32 4;
+            };
+            "org/gnome/shell/extensions/mouse-tail".render-mode = "precise";
+            "org/gnome/shell/extensions/notification-timeout".timeout = lib.gvariant.mkInt32 2000;
+          }
+          // lib.optionalAttrs cfg.enableBranding {
+            "org/gnome/shell/extensions/user-theme".name = "ClockOverride";
+          }
+          // shortcutSettings;
       }
     ];
 
     programs.dconf.profiles.gdm.databases = lib.optionals cfg.enableBranding [
       {
         settings = {
-          "org/gnome/login-screen".logo = "${gdmLogo}/share/pixmaps/zenos-gdm.png";
+          "org/gnome/login-screen" = {
+            disable-user-list = false;
+            logo = "${gdmLogo}/share/pixmaps/zenos-gdm.png";
+          };
           "org/gnome/desktop/interface" = {
             accent-color = "purple";
             color-scheme = "prefer-dark";
@@ -265,5 +306,11 @@ in
         };
       }
     ];
+
+    systemd.tmpfiles.rules = lib.optionals cfg.enableBranding (
+      map (
+        user: "C /var/lib/AccountsService/users/${user} 0644 root root - ${gdmSystemAccount}"
+      ) gdmGreeterUsers
+    );
   };
 }

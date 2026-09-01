@@ -121,6 +121,15 @@ assert
 assert
   lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".custom-date-text
   == "%d.%m.%Y";
+assert
+  lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".time-font-family
+  == "Zero Mono Thin";
+assert
+  lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".date-font-family
+  == "Zero";
+assert
+  lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".date-font-size
+  == 24;
 assert finalConfig.zenfs.enable;
 assert finalConfig.zenfs.hierarchy.aliases."/Boot" == "/boot";
 assert finalConfig.zenfs.hierarchy.aliases."/Config" == "/etc";
@@ -136,6 +145,8 @@ assert builtins.elem "zenos-icons" finalPackageNames;
 assert builtins.elem "zenos-icons" oobePackageNames;
 assert builtins.elem "zenos-nautilus-apps" finalPackageNames;
 assert builtins.elem "zenos-nautilus-apps" oobePackageNames;
+assert builtins.elem "nautilus-python" finalPackageNames;
+assert builtins.elem "nautilus-python" oobePackageNames;
 assert builtins.elem "zenos-setup" oobePackageNames;
 assert builtins.elem "gnome-shell-extension-zenos-oobe-mode" oobePackageNames;
 assert builtins.elem "zen-dsl" oobePackageNames;

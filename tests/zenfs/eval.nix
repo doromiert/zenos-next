@@ -83,8 +83,14 @@ assert builtins.elem "nosuid" cfg.fileSystems."/home/alice/Documents".options;
 assert builtins.elem "noexec" cfg.fileSystems."/home/alice/Documents".options;
 assert builtins.elem "ro" cfg.fileSystems."/home/alice/Documents".options;
 assert cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.private/Config".d.mode == "0700";
-assert cfg.environment.sessionVariables.XDG_CONFIG_HOME == "$HOME/.private/Config";
-assert cfg.environment.sessionVariables.XDG_STATE_HOME == "$HOME/.private/State";
+assert
+  cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.config".L.argument
+  == "/home/alice/.private/Config";
+assert
+  cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.private/Config/user-dirs.dirs".C.mode
+  == "0600";
+assert nixpkgs.lib.hasInfix "XDG_CONFIG_HOME" cfg.environment.extraInit;
+assert cfg.environment.etc ? "systemd/user-environment-generators/20-zenfs";
 assert cfg.zenfs.hierarchy.aliases."/Boot" == "/boot";
 assert cfg.zenfs.hierarchy.aliases."/System/Config" == "/etc";
 assert cfg.zenfs.hierarchy.aliases."/Config" == "/etc";

@@ -103,16 +103,79 @@ let
       inherit (mount) group;
     }) privateMounts;
 
-  tmpfileSettings = builtins.listToAttrs (
-    map (
-      directory:
-      nameValuePair directory.path {
-        d = {
-          inherit (directory) mode user group;
+  userCompatibilityLinks = concatLists (
+    mapAttrsToList (
+      name: userCfg:
+      let
+        home = getUserHome name userCfg;
+        linkRule = path: target: {
+          inherit path target;
+          user = name;
+          inherit (userCfg) group;
         };
-      }
-    ) tmpfileDirectories
+      in
+      [
+        (linkRule "${home}/.config" "${home}/.private/Config")
+        (linkRule "${home}/.cache" "${home}/.private/Live")
+        (linkRule "${home}/.local" "${home}/.private/Local")
+        (linkRule "${home}/.private/Local/lib" "${home}/.private/Packages/lib")
+        (linkRule "${home}/.private/Local/share" "${home}/.private/Packages")
+        (linkRule "${home}/.private/Local/state" "${home}/.private/State")
+      ]
+    ) cfg.users
   );
+
+  userDirsConfig = pkgs.writeText "zenfs-user-dirs.dirs" ''
+    XDG_DESKTOP_DIR="$HOME/Desktop"
+    XDG_DOWNLOAD_DIR="$HOME/Downloads"
+    XDG_TEMPLATES_DIR="$HOME/Templates"
+    XDG_PUBLICSHARE_DIR="$HOME/Public"
+    XDG_DOCUMENTS_DIR="$HOME/Documents"
+    XDG_MUSIC_DIR="$HOME/Music"
+    XDG_PICTURES_DIR="$HOME/Pictures"
+    XDG_VIDEOS_DIR="$HOME/Videos"
+  '';
+
+  userDirFiles = mapAttrsToList (name: userCfg: {
+    path = "${getUserHome name userCfg}/.private/Config/user-dirs.dirs";
+    user = name;
+    inherit (userCfg) group;
+  }) cfg.users;
+
+  tmpfileSettings =
+    builtins.listToAttrs (
+      map (
+        directory:
+        nameValuePair directory.path {
+          d = {
+            inherit (directory) mode user group;
+          };
+        }
+      ) tmpfileDirectories
+    )
+    // builtins.listToAttrs (
+      map (
+        link:
+        nameValuePair link.path {
+          L = {
+            argument = link.target;
+            inherit (link) user group;
+          };
+        }
+      ) userCompatibilityLinks
+    )
+    // builtins.listToAttrs (
+      map (
+        file:
+        nameValuePair file.path {
+          C = {
+            argument = "${userDirsConfig}";
+            mode = "0600";
+            inherit (file) user group;
+          };
+        }
+      ) userDirFiles
+    );
 
   driveFileSystems = builtins.listToAttrs (
     map (
@@ -350,8 +413,10 @@ in
                   ".private/Apps"
                   ".private/Config"
                   ".private/Live"
+                  ".private/Local"
                   ".private/Mount"
                   ".private/Packages"
+                  ".private/Packages/lib"
                   ".private/State"
                 ];
                 description = "Private directories relative to the user's home.";
@@ -559,12 +624,22 @@ in
 
     environment = {
       etc."zenfs/manifest.json".source = manifest;
-      sessionVariables = {
-        XDG_CACHE_HOME = "$HOME/.private/Live";
-        XDG_CONFIG_HOME = "$HOME/.private/Config";
-        XDG_DATA_HOME = "$HOME/.private/Packages";
-        XDG_STATE_HOME = "$HOME/.private/State";
-      };
+      etc."systemd/user-environment-generators/20-zenfs".source =
+        pkgs.writeShellScript "zenfs-user-environment-generator" ''
+          if [ -n "$HOME" ]; then
+            printf '%s\n' \
+              "XDG_CACHE_HOME=$HOME/.private/Live" \
+              "XDG_CONFIG_HOME=$HOME/.private/Config" \
+              "XDG_DATA_HOME=$HOME/.private/Packages" \
+              "XDG_STATE_HOME=$HOME/.private/State"
+          fi
+        '';
+      extraInit = ''
+        export XDG_CACHE_HOME="$HOME/.private/Live"
+        export XDG_CONFIG_HOME="$HOME/.private/Config"
+        export XDG_DATA_HOME="$HOME/.private/Packages"
+        export XDG_STATE_HOME="$HOME/.private/State"
+      '';
       systemPackages = [ zenfsctl ];
     };
 
