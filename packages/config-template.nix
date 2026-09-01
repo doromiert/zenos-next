@@ -151,6 +151,7 @@ let
                 zenpkgs.nixosModules.installed-base
                 zenpkgs.nixosModules.oobe
                 zenpkgs.nixosModules.webapps
+                zenpkgs.nixosModules.desktops.gnome.tweaks.firefox-theming."module.nix"
                 disko.nixosModules.disko
                 (zenosSource + "/modules/gnome-profile.nix")
                 (zenosSource + "/modules/platform/refind.nix")
