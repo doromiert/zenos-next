@@ -31,7 +31,7 @@ let
               home = "/Users/contract";
              group = "users";
            };
-           disko.devices.disk.generated = {
+           zenos.system.disks.disk.generated = {
              type = "disk";
              device = "/dev/vda";
              content = {

@@ -150,6 +150,7 @@ let
               modules = [
                 zenpkgs.nixosModules.interface
                 zenpkgs.nixosModules.installed-base
+                zenpkgs.nixosModules.disks
                 zenpkgs.nixosModules.oobe
                 zenpkgs.nixosModules.webapps
                 zenpkgs.nixosModules.desktops.gnome.tweaks.firefox-theming."module.nix"
