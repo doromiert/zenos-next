@@ -1,5 +1,22 @@
 # ZenOS Next Installation Readiness
 
+## Next session priorities
+
+- [ ] Fix the installed rEFInd configuration so EFI Shell is actually hidden; verify the generated menu and theme config, not only the source template.
+- [ ] Hide the `.desktop` suffix in `/Apps` and `~/.private/Apps` while retaining `application/x-desktop` classification and validated token launching.
+- [ ] Remove or namespace every home dotfile and dot-directory except `.private`, including shell history, SSH/GnuPG state, Mozilla state, Nix profiles, and compatibility links; applications must use XDG relocation or explicit per-app compatibility namespaces.
+- [ ] Preconfigure Flatpak and build the Windows application compatibility system plus its configuration UI.
+  - User and system Flatpak policy, remotes, install/remove/details integration, and app-index refresh.
+  - Isolated Wine prefixes for desktop applications and UMU-Proton for games.
+  - Per-app runner, prefix, environment, and compatibility settings in the app details UI.
+- [ ] Add hardware detection, support, and optimization templates for testable Lenovo systems.
+  - ThinkPad L13 Yoga Gen 1.
+  - ThinkPad X13 Yoga Gen 2.
+  - Detect exact model identifiers and expose applied template decisions through ZCFG diagnostics.
+- [ ] Add proper GNOME extension configuration modules with 1:1 feature parity with the current imperative dconf profile, but organize options around user workflows rather than mirroring raw dconf keys.
+- [ ] Make `/Config/ZenOS` the canonical default target used and reported by `zenos-rebuild`, never `/etc/ZenOS`, and add `tmux` as an explicit runtime dependency.
+- [ ] Build a properly fleshed-out GNOME ZMDL covering desktop packages, defaults, extensions, shortcuts, branding, theming, sessions, and ergonomic typed configuration.
+
 ## Resume State
 
 - The current installed VM is managed by virt-manager and accepts live ZCFG updates through `zenos-rebuild`.
