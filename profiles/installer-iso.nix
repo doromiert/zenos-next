@@ -616,5 +616,8 @@ in
     volumeID = "ZENOS_INSTALLER";
     squashfsCompression = "zstd -Xcompression-level 6";
   };
+  system.nixos.label = lib.mkForce (
+    lib.replaceStrings [ " " "(" ")" ] [ "-" "" "" ] config.zenos.system.release.full
+  );
   image.baseName = lib.mkForce "zenos-installer";
 }

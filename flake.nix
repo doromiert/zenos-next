@@ -196,6 +196,9 @@
         config-template = import ./tests/config-template {
           inherit configTemplate pkgs;
         };
+        iso-version =
+          assert lib.hasPrefix "1.0.0Nb-" zenosInstallerIso.config.system.nixos.label;
+          pkgs.runCommand "zenos-iso-version-check" { } "touch $out";
         vm-system = zenosOobeVm.config.system.build.toplevel;
         installer-iso-system = zenosInstallerIso.config.system.build.toplevel;
         zen-dsl = self.packages.${system}.zen-dsl;

@@ -629,11 +629,11 @@
         "vsc-extensions": "vsc-extensions"
       },
       "locked": {
-        "lastModified": 1788296545,
-        "narHash": "sha256-h754d04Rij2x55cpPd6a4tbD1pgxyoUtspu5LUCo9Sk=",
+        "lastModified": 1788298437,
+        "narHash": "sha256-nYRSEBHsfOtlOzPP8Pnj59CjGZG+FoC7LWlibwNB87k=",
         "owner": "zenos-n",
         "repo": "zenpkgs",
-        "rev": "59731bcb4ea146f54ddb22a22be8542c42c1dd1a",
+        "rev": "765deaea8999949d65e2f47f6d87928b32bb770a",
         "type": "github"
       },
       "original": {

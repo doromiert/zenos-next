@@ -189,6 +189,7 @@ in
         pkgs.zenos.theming.fonts.zero.mono-thin
         pkgs.zenos.theming.fonts.zero.regular
         pkgs.zenos.theming.icons.adwaita-hacks
+        pkgs.zenos.theming.wallpapers.destination-2
       ]
       ++ lib.optionals cfg.enableExtensions cfg.extensionPackages;
 

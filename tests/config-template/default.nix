@@ -165,6 +165,7 @@ assert
 assert finalConfig.nixpkgs.config.allowUnfree;
 assert oobeConfig.nixpkgs.config.allowUnfree;
 assert builtins.elem "zenos-icons" finalPackageNames;
+assert builtins.elem "destination-2-wallpapers" finalPackageNames;
 assert builtins.elem "zenos-icons" oobePackageNames;
 assert builtins.elem "zenos-nautilus-apps" finalPackageNames;
 assert builtins.elem "zenos-nautilus-apps" oobePackageNames;

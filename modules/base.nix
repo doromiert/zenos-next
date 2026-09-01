@@ -142,6 +142,7 @@ in
     pkgs.zenos.apps.development-tools.git
     pkgs.zenos.apps.system.gnome-console
     pkgs.zenos.apps.development-tools.nano
+    pkgs.zenos.theming.wallpapers.destination-2
   ];
 
   fonts = {
