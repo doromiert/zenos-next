@@ -2,10 +2,10 @@
 
 ## Resume State
 
-- The previous VM disk was raced by a new installer run during rescue and should be discarded.
-- Start final verification from a fresh qcow2 after the next completed ISO build.
-- The source-level typed-empty-array fix is complete; fresh installs from the next finished ISO do not need that hotfix.
-- The most recent ISO build was interrupted during SquashFS creation and must be rerun before another clean install.
+- The current installed VM is managed by virt-manager and accepts live ZCFG updates through `zenos-rebuild`.
+- Registry, SSH, PWA adapter, Firefox theming, and flattened config-root changes were validated on that VM.
+- Start final installer verification from a fresh qcow2 after the next completed ISO build.
+- The source-level typed-empty-array fix is complete; fresh installs from the next ISO do not need that hotfix.
 - Do not re-enable Popcorn until its Cachix substitution works for the host daemon.
 
 ## Installer correctness
@@ -76,6 +76,11 @@
 
 ## Post-install platform backlog
 
+- [x] Register ZenPkgs system-wide and expose nested legacy package installables such as `zenpkgs#legacy.nvim`.
+- [x] Install `zcfg` and `zenos-rebuild` by default and compile ZCFG automatically during rebuilds.
+- [x] Keep editable configuration under `/Config/ZenOS` without the obsolete nested `Flake` directory.
+- [x] Add typed `system.services.ssh` ZCFG settings and validate the live SSH service.
+- [x] Add the first-class per-user PWA adapter and Home Manager integration to ZenPkgs.
 - [ ] Delete Forge's stray `~/undefined.bak` whenever it appears; fix Forge upstream if possible and retain cleanup as a defensive fallback.
 - [ ] Remove visible `.cache`, `.config`, and `.local` compatibility paths in strict ZenFS mode.
   - Native applications use relocated XDG paths under `.private`.
@@ -92,12 +97,12 @@
   - Let users choose the runner/compatibility layer per app through the app details window.
 - [ ] Ensure `/mnt` exists before `/Mount` is created and validate the default mount hierarchy on fresh installs.
 - [ ] Make `/Users` the canonical real home root and reverse compatibility to `/home -> /Users`; provide stricter per-app namespace compatibility later.
-- [ ] Enable Firefox customization by default for new installs and in the Setup software defaults.
+- [x] Enable Firefox customization by default for new installs and in the Setup software defaults.
 - [ ] Document and rationalize the currently shipped custom command set.
 - [ ] Make every program option enable its package automatically; add program modules for all applications selectable in Setup.
 - [ ] Add proper configurable modules for every shipped GNOME extension and expose their settings through ZCFG.
 - [ ] Map `zenos.system.disks` declaratively to Disko.
-- [ ] Hide generated `host.nix` from the user-facing config view while retaining it as the compiler bridge.
+- [x] Hide generated `host.nix` from the user-facing config view while retaining it as the compiler bridge.
 - [ ] Remove or relocate leftover `install-plan.json` after installation completes.
 - [ ] Use ZenOS state versions in ZCFG: `1.0.0` maps internally to NixOS `26.05`.
 - [ ] Port remaining useful modules from zenos-old.
