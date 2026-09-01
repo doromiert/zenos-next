@@ -109,7 +109,7 @@
 - [ ] Add proper configurable modules for every shipped GNOME extension and expose their settings through ZCFG.
 - [ ] Map `zenos.system.disks` declaratively to Disko.
 - [x] Hide generated `host.nix` from the user-facing config view while retaining it as the compiler bridge.
-- [ ] Remove or relocate leftover `install-plan.json` after installation completes.
+- [x] Remove leftover `install-plan.json` after installation completes while retaining it during transactional install and OOBE work.
 - [ ] Use ZenOS state versions in ZCFG: `1.0.0` maps internally to NixOS `26.05`.
 - [ ] Port remaining useful modules from zenos-old.
   - Optional full VR support module.
