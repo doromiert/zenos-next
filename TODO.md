@@ -92,7 +92,11 @@
   - [ ] Move token operations behind a user D-Bus app broker and add inspect/install/remove/settings methods.
 - [ ] Build a proper app details window for manifest information, desktop-entry editing, compatibility settings, and app actions.
 - [ ] Add first-class Flatpak support to the app index, details UI, and install/remove flows.
+  - [x] Add validated user-scoped `zen-flatpak` install/remove/list operations with automatic private-index refresh.
+  - [ ] Add details UI actions and explicit policy for system or declaratively managed Flatpaks.
 - [ ] Complete AppImage support in the app index, details UI, and install/remove flows.
+  - [x] Validate, inspect, install, list, remove, and index type-2 AppImages without executing untrusted metadata.
+  - [ ] Add details UI actions and compatibility overrides for installed AppImages.
 - [ ] Add Windows application support through a ZenOS compatibility broker.
   - Use isolated Wine prefixes for general desktop applications.
   - Use UMU-Proton for games; do not treat raw Proton as a general-purpose default runner.

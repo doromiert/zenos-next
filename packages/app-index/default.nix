@@ -1,5 +1,6 @@
 {
   bubblewrap,
+  flatpak,
   lib,
   python3,
   squashfsTools,
@@ -28,12 +29,24 @@ let
       exec python3 ${./appimage.py} "$@"
     '';
   };
+  flatpakApps = writeShellApplication {
+    name = "zen-flatpak";
+    runtimeInputs = [
+      flatpak
+      python3
+    ];
+    text = ''
+      export PYTHONPATH=${./.}
+      exec python3 ${./flatpak.py} "$@"
+    '';
+  };
 in
 symlinkJoin {
   name = "zenos-app-index";
   paths = [
     appIndex
     appImage
+    flatpakApps
   ];
   meta = {
     description = "Build ZenOS application views and manage per-user AppImages";
