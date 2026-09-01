@@ -168,11 +168,12 @@ assert
 assert builtins.elem "zenos-setup" oobePackageNames;
 assert builtins.elem "gnome-shell-extension-zenos-oobe-mode" oobePackageNames;
 assert builtins.elem "zen-dsl" oobePackageNames;
+assert builtins.elem "zen-dsl" finalPackageNames;
+assert builtins.elem "zenos-rebuild" finalPackageNames;
 assert builtins.elem "forge" finalPackageNames;
 assert !builtins.elem "gnome-extension-manager" finalPackageNames;
 assert !builtins.elem "zenos-setup" finalPackageNames;
 assert !builtins.elem "gnome-shell-extension-zenos-oobe-mode" finalPackageNames;
-assert !builtins.elem "zen-dsl" finalPackageNames;
 assert builtins.length finalConfig.system.extraDependencies == 6;
 pkgs.runCommand "zenos-config-template-check" { } ''
   test "$(find ${configTemplate} -mindepth 1 -maxdepth 1 -printf '%f\n')" = "flake.nix"

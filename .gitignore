@@ -1,6 +1,7 @@
 /result
 /result-*
 /*.qcow2
+/*-vars.fd
 /.vm-ssh-key
 /.vm-ssh-key.pub
 /.direnv

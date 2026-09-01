@@ -73,3 +73,36 @@
 - [ ] Verify `intro.mp4` quality, crop, EOF transition, 50% wallpaper timing, and no visible debug panel in the rebuilt ISO.
 - [ ] Verify the custom rEFInd ZenOS entry boots directly and no duplicate/tool entries appear.
 - [ ] Verify GDM logo/theme and the stacked Zero Mono lock-screen clock on the final system.
+
+## Post-install platform backlog
+
+- [ ] Delete Forge's stray `~/undefined.bak` whenever it appears; fix Forge upstream if possible and retain cleanup as a defensive fallback.
+- [ ] Remove visible `.cache`, `.config`, and `.local` compatibility paths in strict ZenFS mode.
+  - Native applications use relocated XDG paths under `.private`.
+  - Legacy applications declare required dot-paths and run in Bubblewrap mount namespaces that bind those paths to `.private`.
+  - Monitor unmanaged writes for diagnostics; fanotify/seccomp cannot transparently redirect path resolution.
+- [ ] Pre-generate `/Apps` and `~/.private/Apps` icons/thumbnails before Nautilus displays a directory; keep the Nautilus InfoProvider only as fallback.
+- [ ] Replace directory-sensitive `.desktop` launching with validated ZenOS app tokens and an app broker; normal `.desktop` files outside Apps directories must retain normal behavior.
+- [ ] Build a proper app details window for manifest information, desktop-entry editing, compatibility settings, and app actions.
+- [ ] Add first-class Flatpak support to the app index, details UI, and install/remove flows.
+- [ ] Complete AppImage support in the app index, details UI, and install/remove flows.
+- [ ] Add Windows application support through a ZenOS compatibility broker.
+  - Use isolated Wine prefixes for general desktop applications.
+  - Use UMU-Proton for games; do not treat raw Proton as a general-purpose default runner.
+  - Let users choose the runner/compatibility layer per app through the app details window.
+- [ ] Ensure `/mnt` exists before `/Mount` is created and validate the default mount hierarchy on fresh installs.
+- [ ] Make `/Users` the canonical real home root and reverse compatibility to `/home -> /Users`; provide stricter per-app namespace compatibility later.
+- [ ] Enable Firefox customization by default for new installs and in the Setup software defaults.
+- [ ] Document and rationalize the currently shipped custom command set.
+- [ ] Make every program option enable its package automatically; add program modules for all applications selectable in Setup.
+- [ ] Add proper configurable modules for every shipped GNOME extension and expose their settings through ZCFG.
+- [ ] Map `zenos.system.disks` declaratively to Disko.
+- [ ] Hide generated `host.nix` from the user-facing config view while retaining it as the compiler bridge.
+- [ ] Remove or relocate leftover `install-plan.json` after installation completes.
+- [ ] Use ZenOS state versions in ZCFG: `1.0.0` maps internally to NixOS `26.05`.
+- [ ] Port remaining useful modules from zenos-old.
+  - Optional full VR support module.
+  - ROM MIME type support.
+  - Doromiert's shell configuration 1:1 where practical, optimized for startup, including zoxide/Zsh and Vim-inspired commands such as `:q`.
+  - Desktop-agnostic keyboard shortcut schema in `shortcuts.zcfg`, e.g. `zenos.system.shortcuts.windowing.close = [ "meta" "q" ];`.
+- [ ] Persist the installer ISO Git revision in the installed system version string: `ZenOS 1.0.0Nb (<hash>)`.

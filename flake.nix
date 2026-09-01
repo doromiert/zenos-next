@@ -51,6 +51,7 @@
       zenpkgsIntegration = {
         imports = [ inputs.zenpkgs.nixosModules.interface ];
         nixpkgs.overlays = [ inputs.zenpkgs.overlays.default ];
+        nix.registry.zenpkgs.flake = inputs.zenpkgs;
       };
 
       coreModules = [

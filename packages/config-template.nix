@@ -150,6 +150,7 @@ let
                 zenpkgs.nixosModules.interface
                 zenpkgs.nixosModules.installed-base
                 zenpkgs.nixosModules.oobe
+                zenpkgs.nixosModules.webapps
                 disko.nixosModules.disko
                 (zenosSource + "/modules/gnome-profile.nix")
                 (zenosSource + "/modules/platform/refind.nix")
@@ -213,10 +214,12 @@ let
                     services.getty.autologinUser = lib.mkIf (!oobeEnabled) (lib.mkForce null);
                     environment.systemPackages = [
                       (mkNautilusApps pkgs)
+                      (mkZcfgPackage pkgs)
                       pkgs.zenos.apps.system.gnome-console
                       pkgs.zenos.apps.system.nautilus-python
+                      pkgs.zenos.programs.zenos-rebuild
                     ]
-                      ++ lib.optional oobeEnabled (mkZcfgPackage pkgs);
+                    ;
                     environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
                     xdg.mime.defaultApplications."application/x-desktop" =
                       "com.negzero.zenos.AppLauncher.desktop";

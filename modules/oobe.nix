@@ -131,6 +131,6 @@ in
 
   systemd.tmpfiles.rules = [
     "d /etc/ZenOS 0755 root root -"
-    "d /etc/ZenOS/Flake 0775 ${oobeUser} users -"
+    "d /etc/ZenOS 0775 ${oobeUser} users -"
   ];
 }
