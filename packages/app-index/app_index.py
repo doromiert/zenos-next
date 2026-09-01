@@ -368,16 +368,21 @@ def _bounded_name(value: str, fallback: str) -> str:
 
 def launcher_name(display_name: str, desktop_id: str, used: set[str]) -> str:
     safe_name = _bounded_name(display_name, desktop_id)
-    candidate = safe_name
+    candidate = f"{safe_name}.desktop"
     if candidate in used:
-        candidate = _bounded_name(
-            f"{safe_name} - {desktop_id.removesuffix('.desktop')}", desktop_id
+        candidate = "{}.desktop".format(
+            _bounded_name(
+                f"{safe_name} - {desktop_id.removesuffix('.desktop')}",
+                desktop_id,
+            )
         )
     suffix = 2
     while candidate in used:
-        candidate = _bounded_name(
-            f"{safe_name} - {desktop_id.removesuffix('.desktop')} ({suffix})",
-            desktop_id,
+        candidate = "{}.desktop".format(
+            _bounded_name(
+                f"{safe_name} - {desktop_id.removesuffix('.desktop')} ({suffix})",
+                desktop_id,
+            )
         )
         suffix += 1
     return candidate

@@ -33,8 +33,8 @@ class AppLaunchTests(unittest.TestCase):
             source, target = self.make_index(Path(directory))
 
             self.assertEqual(
-                target / "Editor",
-                validate_launcher(target / "Editor", target, self.roots(source)),
+                target / "Editor.desktop",
+                validate_launcher(target / "Editor.desktop", target, self.roots(source)),
             )
 
     def test_rejects_launcher_outside_apps_views(self) -> None:
@@ -43,7 +43,7 @@ class AppLaunchTests(unittest.TestCase):
             source, target = self.make_index(root)
             outside = root / "outside"
             outside.write_text(
-                (target / "Editor").read_text(encoding="utf-8"), encoding="utf-8"
+                (target / "Editor.desktop").read_text(encoding="utf-8"), encoding="utf-8"
             )
 
             with self.assertRaisesRegex(ValueError, "outside"):
@@ -54,7 +54,7 @@ class AppLaunchTests(unittest.TestCase):
             source, target = self.make_index(Path(directory))
 
             self.assertEqual(
-                target / "Editor",
+                target / "Editor.desktop",
                 resolve_token(
                     app_token("nix-config", "editor.desktop"),
                     target,
@@ -85,9 +85,9 @@ class AppLaunchTests(unittest.TestCase):
             system_target.mkdir()
 
             self.assertEqual(
-                user_target / "Editor",
+                user_target / "Editor.desktop",
                 resolve_path(
-                    user_target / "Editor",
+                    user_target / "Editor.desktop",
                     (system_target, user_target),
                     self.roots(source),
                 ),
@@ -99,7 +99,7 @@ class AppLaunchTests(unittest.TestCase):
             source, target = self.make_index(root)
             outside = root / "copied.desktop"
             outside.write_text(
-                (target / "Editor").read_text(encoding="utf-8"), encoding="utf-8"
+                (target / "Editor.desktop").read_text(encoding="utf-8"), encoding="utf-8"
             )
 
             with self.assertRaisesRegex(ValueError, "managed launcher metadata"):
@@ -108,7 +108,7 @@ class AppLaunchTests(unittest.TestCase):
     def test_rejects_symlink_launcher(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source, target = self.make_index(Path(directory))
-            launcher = target / "Editor"
+            launcher = target / "Editor.desktop"
             original = target / "original"
             launcher.rename(original)
             launcher.symlink_to(original)
@@ -120,7 +120,7 @@ class AppLaunchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source, target = self.make_index(root)
-            launcher = target / "Editor"
+            launcher = target / "Editor.desktop"
             contents = launcher.read_text(encoding="utf-8")
             launcher.write_text(
                 contents.replace(
@@ -148,7 +148,7 @@ class AppLaunchTests(unittest.TestCase):
             )
 
             with self.assertRaisesRegex(ValueError, "app registry"):
-                validate_launcher(target / "Editor", target, self.roots(source))
+                validate_launcher(target / "Editor.desktop", target, self.roots(source))
 
 
 if __name__ == "__main__":

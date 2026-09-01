@@ -25,7 +25,7 @@ class AppIconTests(unittest.TestCase):
             build_index(source, target)
 
             self.assertEqual(
-                [(target / "Editor", "metadata::custom-icon-name", "editor")],
+                [(target / "Editor.desktop", "metadata::custom-icon-name", "editor")],
                 icon_updates(target),
             )
 
@@ -40,7 +40,7 @@ class AppIconTests(unittest.TestCase):
                 encoding="utf-8",
             )
             build_index(source, target)
-            launcher = target / "Editor"
+            launcher = target / "Editor.desktop"
             launcher.write_text(
                 launcher.read_text(encoding="utf-8").replace(
                     "X-ZenOS-AppToken=", "X-ZenOS-AppToken=0"

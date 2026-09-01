@@ -42,8 +42,8 @@ class AppIndexTests(unittest.TestCase):
 
             indexed = build_index(source, target)
 
-            self.assertEqual(["Visible"], indexed)
-            self.assertTrue((target / "Visible").stat().st_mode & 0o111)
+            self.assertEqual(["Visible.desktop"], indexed)
+            self.assertTrue((target / "Visible.desktop").stat().st_mode & 0o111)
             self.assertFalse((target / "hidden.desktop").exists())
 
     def test_rejects_non_application_and_missing_try_exec(self) -> None:
@@ -131,12 +131,12 @@ class AppIndexTests(unittest.TestCase):
             )
             views = build_source_views(home, target, "alice", sources)
 
-            self.assertEqual(["Manual Editor", "Chat"], views["all"])
-            self.assertEqual(["Nix Editor"], views["nix-imperative"])
-            self.assertTrue((target / ".sources/manual/Manual Editor").is_file())
+            self.assertEqual(["Manual Editor.desktop", "Chat.desktop"], views["all"])
+            self.assertEqual(["Nix Editor.desktop"], views["nix-imperative"])
+            self.assertTrue((target / ".sources/manual/Manual Editor.desktop").is_file())
             self.assertTrue((target / ".sources/nix-config").is_dir())
             self.assertEqual(
-                "manual", desktop_entry(target / "Manual Editor")["X-ZenOS-Source"]
+                "manual", desktop_entry(target / "Manual Editor.desktop")["X-ZenOS-Source"]
             )
             manifest = json.loads(
                 (target / ".sources/.zenos-source-views.json").read_text(
@@ -163,7 +163,7 @@ class AppIndexTests(unittest.TestCase):
             )
             self.assertEqual(
                 registry["applications"][0]["token"],
-                desktop_entry(target / "Manual Editor")["X-ZenOS-AppToken"],
+                desktop_entry(target / "Manual Editor.desktop")["X-ZenOS-AppToken"],
             )
 
     def test_records_owning_nix_package(self) -> None:
@@ -180,7 +180,7 @@ class AppIndexTests(unittest.TestCase):
 
             build_index(source, root / "Apps")
 
-            entry = desktop_entry(root / "Apps/Editor")
+            entry = desktop_entry(root / "Apps/Editor.desktop")
             self.assertEqual(str(package), entry["X-ZenOS-Package"])
 
     def test_skips_malformed_desktop_booleans(self) -> None:
@@ -230,7 +230,7 @@ class AppIndexTests(unittest.TestCase):
             build_index(source, target)
             victim = root / "victim"
             victim.write_text("keep", encoding="utf-8")
-            launcher = target / "Editor"
+            launcher = target / "Editor.desktop"
             launcher.unlink()
             launcher.symlink_to(victim)
 
@@ -274,13 +274,13 @@ class AppIndexTests(unittest.TestCase):
 
             build_source_views(home, root / "Apps", "alice", sources)
 
-            launcher = (root / "Apps/Editor").read_text(encoding="utf-8")
+            launcher = (root / "Apps/Editor.desktop").read_text(encoding="utf-8")
             normalized = [
                 line.partition("=")[0].strip().casefold()
                 for line in launcher.splitlines()
                 if "=" in line
             ]
-            entry = desktop_entry(root / "Apps/Editor")
+            entry = desktop_entry(root / "Apps/Editor.desktop")
             self.assertEqual("manual", entry["X-ZenOS-Source"])
             self.assertNotIn("X-ZenOS-Package", entry)
             self.assertNotIn("x-zenos-origin", normalized)
