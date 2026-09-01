@@ -24,6 +24,7 @@ let
   cfg = config.zenfs;
   zenfsctl = pkgs.callPackage ../../packages/zenfsctl { };
   appIndex = pkgs.callPackage ../../packages/app-index { };
+  nautilusApps = pkgs.callPackage ../../packages/nautilus-apps { inherit appIndex; };
   hasManagedUsers = cfg.users != { };
   managedIdentityPatterns = concatMapStringsSep "|" escapeShellArg (
     mapAttrsToList (name: userCfg: "${name}:${getUserHome name userCfg}") cfg.users
@@ -742,6 +743,23 @@ in
       serviceConfig = {
         Type = "oneshot";
         ExecStart = lib.getExe userInit;
+        RemainAfterExit = true;
+      };
+    };
+    systemd.user.services.zenos-user-app-index = {
+      description = "Build and decorate the per-user ZenOS application directory";
+      wantedBy = [ "graphical-session-pre.target" ];
+      requires = [ "zenfs-user-init.service" ];
+      after = [ "zenfs-user-init.service" ];
+      before = [ "graphical-session.target" ];
+      unitConfig.ConditionPathIsDirectory = "%h/.private/Apps";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = [
+          "${lib.getExe appIndex} --home %h --target %h/.private/Apps --user %u"
+          "${nautilusApps}/bin/zen-app-icons /Apps"
+          "${nautilusApps}/bin/zen-app-icons %h/.private/Apps"
+        ];
         RemainAfterExit = true;
       };
     };

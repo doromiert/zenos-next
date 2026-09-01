@@ -5,7 +5,7 @@ import unittest
 
 from app_index import build_index
 from app_registry import app_token
-from zen_app_launch import resolve_launcher, resolve_token, validate_launcher
+from zen_app_launch import resolve_launcher, resolve_path, resolve_token, validate_launcher
 
 
 class AppLaunchTests(unittest.TestCase):
@@ -75,6 +75,22 @@ class AppLaunchTests(unittest.TestCase):
             self.assertEqual(
                 ordinary,
                 resolve_launcher(ordinary, target, self.roots(source)),
+            )
+
+    def test_resolves_managed_launcher_from_user_apps_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, user_target = self.make_index(root)
+            system_target = root / "SystemApps"
+            system_target.mkdir()
+
+            self.assertEqual(
+                user_target / "Editor",
+                resolve_path(
+                    user_target / "Editor",
+                    (system_target, user_target),
+                    self.roots(source),
+                ),
             )
 
     def test_never_falls_back_for_copied_managed_launcher(self) -> None:

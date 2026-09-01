@@ -100,6 +100,13 @@ assert cfg.environment.etc ? "systemd/user-environment-generators/20-zenfs";
 assert nixpkgs.lib.hasInfix "alice:/home/alice" userEnvironmentGenerator;
 assert !(nixpkgs.lib.hasInfix "gdm-greeter" userEnvironmentGenerator);
 assert cfg.systemd.user.services.zenfs-user-init.serviceConfig.Type == "oneshot";
+assert cfg.systemd.user.services.zenos-user-app-index.serviceConfig.Type == "oneshot";
+assert
+  cfg.systemd.user.services.zenos-user-app-index.unitConfig.ConditionPathIsDirectory
+  == "%h/.private/Apps";
+assert nixpkgs.lib.hasInfix "%h/.private/Apps" (
+  builtins.head cfg.systemd.user.services.zenos-user-app-index.serviceConfig.ExecStart
+);
 assert cfg.zenfs.hierarchy.aliases."/Boot" == "/boot";
 assert cfg.zenfs.hierarchy.aliases."/System/Config" == "/etc";
 assert cfg.zenfs.hierarchy.aliases."/Config" == "/etc";

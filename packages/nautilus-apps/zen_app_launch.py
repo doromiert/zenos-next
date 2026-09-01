@@ -250,6 +250,22 @@ def resolve_launcher(
     return validate_launcher(candidate, root, roots)
 
 
+def resolve_path(
+    value: Path,
+    apps_roots: Sequence[Path],
+    roots: Mapping[str, Sequence[Path]] | None = None,
+) -> Path:
+    candidate = Path(os.path.abspath(value))
+    for apps_root in apps_roots:
+        try:
+            root = _real_directory(apps_root)
+            candidate.relative_to(root)
+        except (FileNotFoundError, ValueError):
+            continue
+        return validate_launcher(candidate, root, roots)
+    return validate_ordinary_launcher(candidate)
+
+
 def resolve_token(
     token: str,
     apps_root: Path = Path("/Apps"),
@@ -271,21 +287,29 @@ def resolve_token(
 
 
 def main() -> int:
-    if len(sys.argv) == 3 and sys.argv[1] == "--token":
+    arguments = sys.argv[1:]
+    apps_root = Path(os.environ.get("ZENOS_APPS_DIR", "/Apps"))
+    if len(arguments) >= 2 and arguments[0] == "--apps-root":
+        apps_root = Path(arguments[1])
+        arguments = arguments[2:]
+    if len(arguments) == 2 and arguments[0] == "--token":
         mode = "token"
-        value = sys.argv[2]
-    elif len(sys.argv) == 2:
+        value = arguments[1]
+    elif len(arguments) == 1:
         mode = "path"
-        value = sys.argv[1]
+        value = arguments[0]
     else:
         return 2
     try:
-        apps_root = Path(os.environ.get("ZENOS_APPS_DIR", "/Apps"))
-        launcher = (
-            resolve_token(value, apps_root)
-            if mode == "token"
-            else resolve_launcher(Path(value), apps_root)
-        )
+        if mode == "token":
+            launcher = resolve_token(value, apps_root)
+        else:
+            user_root = Path(
+                os.environ.get(
+                    "ZENOS_USER_APPS_DIR", str(Path.home() / ".private/Apps")
+                )
+            )
+            launcher = resolve_path(Path(value), (apps_root, user_root))
     except (configparser.Error, KeyError, OSError, UnicodeError, ValueError) as error:
         print(f"zen-app-launch: {error}", file=sys.stderr)
         return 1

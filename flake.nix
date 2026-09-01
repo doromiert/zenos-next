@@ -250,6 +250,7 @@
             ''
               python -m py_compile ${./packages/nautilus-apps/zenos_apps.py}
               python -m py_compile ${./packages/nautilus-apps/zen_app_launch.py}
+              python -m py_compile ${./packages/nautilus-apps/zen_app_icons.py}
               export GI_TYPELIB_PATH=${pkgs.zenos.apps.system.nautilus}/lib/girepository-1.0:''${GI_TYPELIB_PATH:-}
               python - <<'PY'
               import gi

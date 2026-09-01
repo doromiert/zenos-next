@@ -152,6 +152,10 @@ assert finalConfig.zenfs.users.contract.home == "/home/contract";
 assert oobeConfig.zenfs.users.zenos.home == "/run/zenos-oobe";
 assert pkgs.lib.hasInfix "/Apps"
   finalConfig.systemd.services.zenos-app-index.serviceConfig.ExecStart;
+assert finalConfig.systemd.user.services ? zenos-user-app-index;
+assert
+  finalConfig.systemd.user.services.zenos-user-app-index.unitConfig.ConditionPathIsDirectory
+  == "%h/.private/Apps";
 assert finalConfig.nixpkgs.config.allowUnfree;
 assert oobeConfig.nixpkgs.config.allowUnfree;
 assert builtins.elem "zenos-icons" finalPackageNames;

@@ -13,21 +13,39 @@ from urllib.parse import unquote, urlparse
 from gi.repository import Gio, GLib, GObject, Gtk, Nautilus
 
 
-APPS_ROOT = Path("/Apps")
+SYSTEM_APPS_ROOT = Path("/Apps")
+USER_APPS_ROOT = Path(
+    os.environ.get("ZENOS_USER_APPS_DIR", str(Path.home() / ".private/Apps"))
+)
+APPS_ROOTS = (SYSTEM_APPS_ROOT, USER_APPS_ROOT)
 APP_TOKEN = re.compile(r"^[0-9a-f]{64}$")
 ZEN_APP_LAUNCH = "@zen_app_launch@"
 ZEN_APPIMAGE = "@zen_appimage@"
-SOURCE_VIEWS = (
-    ("All Sources", APPS_ROOT),
-    ("Nix (Config)", APPS_ROOT / ".sources/nix-config"),
-    ("Nix (Imperative)", APPS_ROOT / ".sources/nix-imperative"),
-    ("Flatpak", APPS_ROOT / ".sources/flatpak"),
-    ("Manually Installed", APPS_ROOT / ".sources/manual"),
+SOURCE_VIEW_SPECS = (
+    ("All Sources", None),
+    ("Nix (Config)", "nix-config"),
+    ("Nix (Imperative)", "nix-imperative"),
+    ("Flatpak", "flatpak"),
+    ("Manually Installed", "manual"),
 )
 
 
+def source_views(root: Path) -> tuple[tuple[str, Path], ...]:
+    return tuple(
+        (label, root if source is None else root / ".sources" / source)
+        for label, source in SOURCE_VIEW_SPECS
+    )
+
+
+def apps_root_for_view(path: Path) -> Path | None:
+    for root in APPS_ROOTS:
+        if path in {view_path for _label, view_path in source_views(root)}:
+            return root
+    return None
+
+
 def apps_view(path: Path) -> bool:
-    return path in {view_path for _label, view_path in SOURCE_VIEWS}
+    return apps_root_for_view(path) is not None
 
 
 def launcher_path(file_info: Nautilus.FileInfo) -> Path | None:
@@ -147,9 +165,9 @@ class ZenOSAppsExtension(
         if package:
             file_info.add_string_attribute("zenos_package", package)
 
-    def _launch(self, _item: Nautilus.MenuItem, token: str) -> None:
+    def _launch(self, _item: Nautilus.MenuItem, token: str, root: Path) -> None:
         Gio.Subprocess.new(
-            [ZEN_APP_LAUNCH, "--token", token],
+            [ZEN_APP_LAUNCH, "--apps-root", str(root), "--token", token],
             Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
         )
 
@@ -187,6 +205,9 @@ class ZenOSAppsExtension(
         path = launcher_path(files[0])
         if path is None:
             return []
+        root = apps_root_for_view(path.parent)
+        if root is None:
+            return []
         app, package, _icon_file, token = desktop_details(path)
         if app is None or token is None:
             return []
@@ -195,7 +216,7 @@ class ZenOSAppsExtension(
             name="ZenOSApps::Launch",
             label=f"Launch {app.get_name()}",
         )
-        launch.connect("activate", self._launch, token)
+        launch.connect("activate", self._launch, token, root)
         items = [launch]
 
         if package:
@@ -214,11 +235,12 @@ class ZenOSAppsExtension(
         self, current_folder: Nautilus.FileInfo
     ) -> List[Nautilus.MenuItem]:
         current = Path(unquote(urlparse(current_folder.get_uri()).path))
-        if not apps_view(current):
+        root = apps_root_for_view(current)
+        if root is None:
             return []
 
         submenu = Nautilus.Menu()
-        for label, path in SOURCE_VIEWS:
+        for label, path in source_views(root):
             item = Nautilus.MenuItem(
                 name=f"ZenOSApps::Source::{path.name}",
                 label=label,
@@ -238,7 +260,8 @@ def location_widget(uri: str, window: object) -> Gtk.Widget | None:
     if parsed.scheme != "file":
         return None
     current = Path(unquote(parsed.path))
-    if not apps_view(current):
+    root = apps_root_for_view(current)
+    if root is None:
         return None
 
     navigation = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
@@ -246,7 +269,7 @@ def location_widget(uri: str, window: object) -> Gtk.Widget | None:
     navigation.set_halign(Gtk.Align.CENTER)
     first_button = None
     extension = ZenOSAppsExtension()
-    for label, path in SOURCE_VIEWS:
+    for label, path in source_views(root):
         button = Gtk.ToggleButton.new_with_label(label)
         if first_button is None:
             first_button = button
