@@ -22,6 +22,16 @@ stdenvNoCC.mkDerivation {
     install -Dm755 ${./zen_app_launch.py} "$out/bin/zen-app-launch"
     substituteInPlace "$out/bin/zen-app-launch" \
       --replace-fail '#!/usr/bin/env python3' '#!${pythonEnv}/bin/python3'
+    install -Dm644 /dev/stdin \
+      "$out/share/applications/com.negzero.zenos.AppLauncher.desktop" <<EOF
+    [Desktop Entry]
+    Type=Application
+    Name=ZenOS Application Launcher
+    NoDisplay=true
+    Exec=$out/bin/zen-app-launch %f
+    MimeType=application/x-desktop;
+    Terminal=false
+    EOF
   '';
   meta = {
     description = "Nautilus integration for the ZenOS /Apps directory";

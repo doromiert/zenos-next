@@ -18,15 +18,11 @@ else:
 @unittest.skipUnless(REFIND_SCRIPT, "REFIND_SCRIPT is not configured for this check")
 class RefindMenuTests(unittest.TestCase):
     @unittest.skipUnless(REFIND_THEME, "REFIND_THEME is not configured for this check")
-    def test_theme_excludes_unwanted_tools(self):
+    def test_theme_excludes_efi_shell(self):
         theme = Path(REFIND_THEME).read_text(encoding="utf-8")
         showtools = [line.strip() for line in theme.splitlines() if line.startswith("showtools")]
-        exclusions = [
-            line.strip() for line in theme.splitlines() if line.startswith("dont_scan_tools")
-        ]
-        self.assertEqual(showtools, [])
-        self.assertEqual(len(exclusions), 1)
-        self.assertIn("shellx64.efi", exclusions[0].split()[1].split(","))
+        self.assertEqual(showtools, ["showtools shutdown,reboot,firmware"])
+        self.assertNotIn("shell", showtools[0].split()[1].split(","))
 
     def test_generates_menu_from_valid_systemd_boot_entries(self):
         with tempfile.TemporaryDirectory() as root:

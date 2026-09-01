@@ -296,6 +296,12 @@ in
             disable-user-list = false;
             logo = "${gdmLogo}/share/pixmaps/zenos-gdm.png";
           };
+          "org/gnome/desktop/lockdown".disable-lock-screen = true;
+          "org/gnome/desktop/session".idle-delay = lib.gvariant.mkUint32 0;
+          "org/gnome/settings-daemon/plugins/power" = {
+            sleep-inactive-ac-type = "nothing";
+            sleep-inactive-battery-type = "nothing";
+          };
           "org/gnome/desktop/interface" = {
             accent-color = "purple";
             color-scheme = "prefer-dark";

@@ -136,6 +136,69 @@ let
     XDG_VIDEOS_DIR="$HOME/Videos"
   '';
 
+  userInit = pkgs.writeShellApplication {
+    name = "zenfs-user-init";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.xdg-user-dirs
+    ];
+    text = ''
+      private="$HOME/.private"
+
+      migrate_directory() {
+        source="$1"
+        target="$2"
+        if [ -L "$source" ]; then
+          return
+        fi
+        install -d -m 0700 "$target"
+        if [ -d "$source" ]; then
+          cp -a "$source/." "$target/"
+          rm -rf --one-file-system "$source"
+        elif [ -e "$source" ]; then
+          echo "ZenFS: refusing to replace non-directory $source" >&2
+          return 1
+        fi
+        ln -s "$target" "$source"
+      }
+
+      install -d -m 0700 \
+        "$private/Config" \
+        "$private/Live" \
+        "$private/Local" \
+        "$private/Packages" \
+        "$private/Packages/lib" \
+        "$private/State"
+
+      migrate_directory "$HOME/.config" "$private/Config"
+      migrate_directory "$HOME/.cache" "$private/Live"
+
+      if [ -d "$HOME/.local" ] && [ ! -L "$HOME/.local" ]; then
+        for entry in lib share state; do
+          if [ -L "$private/Local/$entry" ]; then
+            rm "$private/Local/$entry"
+          fi
+        done
+        migrate_directory "$HOME/.local/lib" "$private/Packages/lib"
+        migrate_directory "$HOME/.local/share" "$private/Packages"
+        migrate_directory "$HOME/.local/state" "$private/State"
+      fi
+      migrate_directory "$HOME/.local" "$private/Local"
+
+      ln -sfn "$private/Packages/lib" "$private/Local/lib"
+      ln -sfn "$private/Packages" "$private/Local/share"
+      ln -sfn "$private/State" "$private/Local/state"
+
+      export XDG_CACHE_HOME="$private/Live"
+      export XDG_CONFIG_HOME="$private/Config"
+      export XDG_DATA_HOME="$private/Packages"
+      export XDG_STATE_HOME="$private/State"
+
+      install -m 0600 ${userDirsConfig} "$XDG_CONFIG_HOME/user-dirs.dirs"
+      xdg-user-dirs-update
+    '';
+  };
+
   userDirFiles = mapAttrsToList (name: userCfg: {
     path = "${getUserHome name userCfg}/.private/Config/user-dirs.dirs";
     user = name;
@@ -657,6 +720,17 @@ in
           Type = "oneshot";
           ExecStart = "${lib.getExe appIndex} --home /var/empty --target /Apps";
         };
+      };
+    };
+    systemd.user.services.zenfs-user-init = {
+      description = "Initialize the per-user ZenFS layout";
+      wantedBy = [ "graphical-session-pre.target" ];
+      before = [ "graphical-session.target" ];
+      unitConfig.ConditionPathExists = "%h/.private/Config/user-dirs.dirs";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe userInit;
+        RemainAfterExit = true;
       };
     };
     systemd.tmpfiles.settings."10-zenfs" = tmpfileSettings;

@@ -115,6 +115,8 @@ assert finalConfig.zenos.gnomeProfile.actionKeys == "zenos";
 assert gdmDatabase.settings."org/gnome/desktop/interface".accent-color == "purple";
 assert pkgs.lib.hasSuffix "/share/pixmaps/zenos-gdm.png"
   gdmDatabase.settings."org/gnome/login-screen".logo;
+assert gdmDatabase.settings."org/gnome/desktop/lockdown".disable-lock-screen;
+assert gdmDatabase.settings."org/gnome/desktop/session".idle-delay == 0;
 assert
   lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".custom-time-text
   == "%H\n%M";
@@ -147,6 +149,11 @@ assert builtins.elem "zenos-nautilus-apps" finalPackageNames;
 assert builtins.elem "zenos-nautilus-apps" oobePackageNames;
 assert builtins.elem "nautilus-python" finalPackageNames;
 assert builtins.elem "nautilus-python" oobePackageNames;
+assert builtins.elem "gnome-console" finalPackageNames;
+assert builtins.elem "gnome-console" oobePackageNames;
+assert
+  finalConfig.xdg.mime.defaultApplications."application/x-desktop"
+  == [ "com.negzero.zenos.AppLauncher.desktop" ];
 assert builtins.elem "zenos-setup" oobePackageNames;
 assert builtins.elem "gnome-shell-extension-zenos-oobe-mode" oobePackageNames;
 assert builtins.elem "zen-dsl" oobePackageNames;

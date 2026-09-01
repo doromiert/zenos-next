@@ -211,9 +211,13 @@ let
                     };
                     environment.systemPackages = [
                       (mkNautilusApps pkgs)
+                      pkgs.zenos.apps.system.gnome-console
                       pkgs.zenos.apps.system.nautilus-python
                     ]
                       ++ lib.optional oobeEnabled (mkZcfgPackage pkgs);
+                    environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
+                    xdg.mime.defaultApplications."application/x-desktop" =
+                      "com.negzero.zenos.AppLauncher.desktop";
                     systemd.user.services.zenos-oobe.environment.ZENOS_SETUP_DRY_RUN =
                       lib.mkIf oobeEnabled "0";
                     systemd.user.services.zenos-oobe.environment.ZENOS_WALLPAPER_FILE =
