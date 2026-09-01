@@ -599,11 +599,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788290770,
-        "narHash": "sha256-zEMZQv7jqqHOaxBr1IPdMXS/jkLg4xO63inAQFJJNp4=",
+        "lastModified": 1788293964,
+        "narHash": "sha256-hIdGXLySdbra4ydBJc5lKyctjG5p/BNIdJN7BrympPw=",
         "owner": "zenos-n",
         "repo": "zenos-setup",
-        "rev": "8a4334dbf6e3f46bae6e7a64342efb01e0ae13a1",
+        "rev": "0cf545e98fad9b91f07a8713cd9e174127101baf",
         "type": "github"
       },
       "original": {
@@ -629,11 +629,11 @@
         "vsc-extensions": "vsc-extensions"
       },
       "locked": {
-        "lastModified": 1788292087,
-        "narHash": "sha256-afxGUCPmvSre1ByYSblL00kI6F5Nedq504dQtPWDALQ=",
+        "lastModified": 1788294282,
+        "narHash": "sha256-X8YD3CG5Sh/DSec5nnDeH2kHykqrwtVB8CRBe4F7dWQ=",
         "owner": "zenos-n",
         "repo": "zenpkgs",
-        "rev": "5049d6e78f7c1912f067f48ee086961363e39014",
+        "rev": "7ebad5d4d7e1c82b27a9c57ce8bf55602efa01c3",
         "type": "github"
       },
       "original": {
