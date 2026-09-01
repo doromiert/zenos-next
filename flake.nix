@@ -198,6 +198,8 @@
         };
         iso-version =
           assert lib.hasPrefix "1.0.0Nb-" zenosInstallerIso.config.system.nixos.label;
+          assert zenosInstallerIso.config.isoImage.grubTheme != null;
+          assert lib.hasInfix "#FFC532FF" zenosInstallerIso.config.isoImage.syslinuxTheme;
           pkgs.runCommand "zenos-iso-version-check" { } "touch $out";
         vm-system = zenosOobeVm.config.system.build.toplevel;
         installer-iso-system = zenosInstallerIso.config.system.build.toplevel;

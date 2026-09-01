@@ -53,6 +53,81 @@ let
     extensionUuid
   ]
   ++ map (extension: extension.extensionUuid) initialExtensionPackages;
+  grubTheme =
+    pkgs.runCommand "zenos-grub-theme"
+      {
+        nativeBuildInputs = [
+          pkgs.grub2
+          pkgs.imagemagick
+        ];
+      }
+      ''
+        install -d "$out"
+        background=${../assets/refind/themes/zenos-picker/background.png}
+        icon=${../assets/refind/themes/zenos-picker/icons/os_zenos.png}
+        font=${pkgs.atkinson-hyperlegible}/share/fonts/opentype/AtkinsonHyperlegible-Regular.otf
+        font_bold=${pkgs.atkinson-hyperlegible}/share/fonts/opentype/AtkinsonHyperlegible-Bold.otf
+
+        install -m 0644 "$background" "$out/background.png"
+        magick "$background" -resize '800x600^' -gravity center -extent 800x600 \
+          "$out/background-bios.png"
+        magick -size 760x150 xc:none \
+          \( "$icon" -resize 112x112 \) -gravity west -geometry +12+0 -composite \
+          -font "$font_bold" -pointsize 52 -fill white -gravity west \
+          -annotate +160-14 'ZENOS' \
+          -font "$font" -pointsize 24 -fill '#b8b8b8' \
+          -annotate +162+34 'Installer  ${config.zenos.system.release.full}' \
+          "$out/header.png"
+        magick -size 880x56 xc:none -fill white \
+          -draw 'roundrectangle 0,0 879,55 14,14' "$out/select_c.png"
+        grub-mkfont -s 24 -o "$out/atkinson.pf2" "$font"
+
+        cat > "$out/theme.txt" <<'EOF'
+        title-text: ""
+        desktop-image: "background.png"
+        message-font: "Atkinson Hyperlegible Regular"
+        message-color: "#ffffff"
+        terminal-font: "Atkinson Hyperlegible Regular"
+
+        + image {
+          top = 9%
+          left = 50%-380
+          width = 760
+          height = 150
+          file = "header.png"
+        }
+
+        + boot_menu {
+          left = 50%-440
+          top = 35%
+          width = 880
+          height = 42%
+          item_font = "Atkinson Hyperlegible Regular"
+          item_color = "#d6d6d6"
+          item_height = 56
+          item_spacing = 8
+          item_padding = 18
+          selected_item_font = "Atkinson Hyperlegible Regular"
+          selected_item_color = "#111111"
+          selected_item_pixmap_style = "select_*.png"
+          icon_width = 0
+          icon_height = 0
+          scrollbar = false
+        }
+
+        + progress_bar {
+          id = "__timeout__"
+          left = 50%-440
+          top = 86%
+          width = 880
+          height = 5
+          show_text = false
+          border_color = "#1b1b1b"
+          bg_color = "#1b1b1b"
+          fg_color = "#c532ff"
+        }
+        EOF
+      '';
   btopCli = pkgs.runCommand "zenos-btop-cli" { } ''
     install -d "$out/bin"
     ln -s ${lib.getExe pkgs.zenos.apps.system.btop} "$out/bin/btop"
@@ -615,6 +690,32 @@ in
     edition = "zenos";
     volumeID = "ZENOS_INSTALLER";
     squashfsCompression = "zstd -Xcompression-level 6";
+    grubTheme = grubTheme;
+    efiSplashImage = "${grubTheme}/background.png";
+    splashImage = "${grubTheme}/background-bios.png";
+    syslinuxTheme = ''
+      MENU TITLE ZenOS Installer
+      MENU RESOLUTION 800 600
+      MENU CLEAR
+      MENU ROWS 7
+      MENU CMDLINEROW -4
+      MENU TIMEOUTROW -3
+      MENU TABMSGROW -2
+      MENU HELPMSGROW -1
+      MENU HELPMSGENDROW -1
+      MENU MARGIN 10
+
+      MENU COLOR BORDER       0  #00000000 #00000000 none
+      MENU COLOR SCREEN       0  #FFFFFFFF #00000000 none
+      MENU COLOR TITLE        0  #FFFFFFFF #00000000 none
+      MENU COLOR UNSEL        0  #FFD6D6D6 #00000000 none
+      MENU COLOR SEL          0  #FF111111 #FFFFFFFF all
+      MENU COLOR TABMSG       0  #FF8A8A8A #00000000 none
+      MENU COLOR TIMEOUT_MSG  0  #FF8A8A8A #00000000 none
+      MENU COLOR TIMEOUT      0  #FFC532FF #00000000 none
+      MENU COLOR CMDMARK      0  #FFC532FF #00000000 none
+      MENU COLOR CMDLINE      0  #FFFFFFFF #00000000 none
+    '';
   };
   system.nixos.label = lib.mkForce (
     lib.replaceStrings [ " " "(" ")" ] [ "-" "" "" ] config.zenos.system.release.full
