@@ -1,4 +1,13 @@
 { config, lib, ... }:
+let
+  gdmGreeterUsers = [
+    "gdm-greeter"
+    "gdm-greeter-2"
+    "gdm-greeter-3"
+    "gdm-greeter-4"
+    "gdm-greeter-5"
+  ];
+in
 {
   system.stateVersion = "26.05";
 
@@ -37,7 +46,19 @@
       enable = lib.mkForce false;
       user = lib.mkForce null;
     };
-    gdm.enable = lib.mkDefault true;
-    defaultSession = lib.mkDefault "gnome";
+    gdm = {
+      enable = lib.mkDefault true;
+      settings.daemon = {
+        AutomaticLoginEnable = lib.mkForce false;
+        TimedLoginEnable = lib.mkForce false;
+      };
+    };
   };
+
+  systemd.tmpfiles.rules = lib.optionals config.services.displayManager.gdm.enable (
+    [ "d /var/lib/AccountsService/users 0755 root root -" ]
+    ++ map (
+      user: "f+ /var/lib/AccountsService/users/${user} 0644 root root - [User]\\nSystemAccount=true\\n"
+    ) gdmGreeterUsers
+  );
 }

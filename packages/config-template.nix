@@ -174,13 +174,13 @@ let
                   {
                     nixpkgs.overlays = [ zenpkgs.overlays.default ];
                     zenos.platform.refind.enable = true;
-                     zenfs.enable = true;
-                     zenfs.users = lib.optionalAttrs oobeEnabled {
-                       zenos = {
-                         home = "/home/zenos";
-                         group = "users";
-                       };
-                     };
+                    zenfs.enable = true;
+                    zenfs.users = lib.optionalAttrs oobeEnabled {
+                      "''${config.zenos.oobe.userName}" = {
+                        home = config.users.users.''${config.zenos.oobe.userName}.home;
+                        group = config.users.users.''${config.zenos.oobe.userName}.group;
+                      };
+                    };
                     zenos.gnomeProfile = {
                       inherit extensionPackages;
                       extensionIds = lib.mkDefault recommendedExtensionIds;
@@ -197,8 +197,8 @@ let
                       zenos-oobe-mode
                       zenosSource
                     ];
-                    zenos.oobe = {
-                      enable = oobeEnabled;
+                     zenos.oobe = {
+                       enable = oobeEnabled;
                     }
                     // lib.optionalAttrs oobeEnabled {
                       setupPackage = mkSetupPackage pkgs;
@@ -207,8 +207,10 @@ let
                       extraExtensionUuids = map (extension: extension.extensionUuid) liveExtensions;
                       authorizedKeys = [
                         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH4+fQMTy7FaLwqDOumL1y3uW+WMWpoc12MEeQXeF+VF zenos-next-vm-debug"
-                      ];
-                    };
+                       ];
+                     };
+                    services.greetd.enable = lib.mkIf (!oobeEnabled) (lib.mkForce false);
+                    services.getty.autologinUser = lib.mkIf (!oobeEnabled) (lib.mkForce null);
                     environment.systemPackages = [
                       (mkNautilusApps pkgs)
                       pkgs.zenos.apps.system.gnome-console

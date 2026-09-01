@@ -102,7 +102,16 @@ assert oobeConfig.zenos.oobe.enable;
 assert finalConfig.services.displayManager.gdm.enable;
 assert !finalConfig.services.displayManager.autoLogin.enable;
 assert finalConfig.services.displayManager.autoLogin.user == null;
+assert finalConfig.services.displayManager.defaultSession == null;
+assert !pkgs.lib.hasInfix "set-session" finalConfig.services.displayManager.generic.preStart;
+assert !finalConfig.services.displayManager.gdm.settings.daemon.AutomaticLoginEnable;
+assert !finalConfig.services.displayManager.gdm.settings.daemon.TimedLoginEnable;
 assert !oobeConfig.services.displayManager.gdm.enable;
+assert !finalConfig.services.greetd.enable;
+assert finalConfig.services.getty.autologinUser == null;
+assert !(builtins.hasAttr "org.gnome.Shell@" finalConfig.systemd.user.services);
+assert !(builtins.hasAttr "org.gnome.Shell@" oobeConfig.systemd.user.services);
+assert builtins.hasAttr "org.gnome.Shell@zenos-oobe" oobeConfig.systemd.user.services;
 assert finalConfig.system.stateVersion == "26.05";
 assert finalConfig.fileSystems ? "/";
 assert oobeConfig.fileSystems ? "/";
@@ -118,7 +127,7 @@ assert gdmDatabase.settings."org/gnome/desktop/interface".accent-color == "purpl
 assert pkgs.lib.hasSuffix "/share/pixmaps/zenos-gdm.png"
   gdmDatabase.settings."org/gnome/login-screen".logo;
 assert gdmDatabase.settings."org/gnome/desktop/lockdown".disable-lock-screen;
-assert gdmDatabase.settings."org/gnome/desktop/session".idle-delay == 0;
+assert gdmDatabase.settings."org/gnome/desktop/session".idle-delay.value == 0;
 assert
   lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".custom-time-text
   == "%H\n%M";
@@ -132,7 +141,7 @@ assert
   lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".date-font-family
   == "Zero";
 assert
-  lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".date-font-size
+  lockClockDatabase.settings."org/gnome/shell/extensions/customize-clock-on-lockscreen".date-font-size.value
   == 24;
 assert finalConfig.zenfs.enable;
 assert finalConfig.zenfs.hierarchy.aliases."/Boot" == "/boot";
@@ -140,7 +149,7 @@ assert finalConfig.zenfs.hierarchy.aliases."/Config" == "/etc";
 assert finalConfig.zenfs.hierarchy.aliases."/Packages" == "/nix";
 assert builtins.elem "/Live" finalConfig.zenfs.hierarchy.directories;
 assert finalConfig.zenfs.users.contract.home == "/home/contract";
-assert oobeConfig.zenfs.users.zenos.home == "/home/zenos";
+assert oobeConfig.zenfs.users.zenos.home == "/run/zenos-oobe";
 assert pkgs.lib.hasInfix "/Apps"
   finalConfig.systemd.services.zenos-app-index.serviceConfig.ExecStart;
 assert finalConfig.nixpkgs.config.allowUnfree;
@@ -155,7 +164,7 @@ assert builtins.elem "gnome-console" finalPackageNames;
 assert builtins.elem "gnome-console" oobePackageNames;
 assert
   finalConfig.xdg.mime.defaultApplications."application/x-desktop"
-  == [ "com.negzero.zenos.AppLauncher.desktop" ];
+  == "com.negzero.zenos.AppLauncher.desktop";
 assert builtins.elem "zenos-setup" oobePackageNames;
 assert builtins.elem "gnome-shell-extension-zenos-oobe-mode" oobePackageNames;
 assert builtins.elem "zen-dsl" oobePackageNames;

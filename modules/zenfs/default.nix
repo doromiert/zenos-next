@@ -24,6 +24,10 @@ let
   cfg = config.zenfs;
   zenfsctl = pkgs.callPackage ../../packages/zenfsctl { };
   appIndex = pkgs.callPackage ../../packages/app-index { };
+  hasManagedUsers = cfg.users != { };
+  managedIdentityPatterns = concatMapStringsSep "|" escapeShellArg (
+    mapAttrsToList (name: userCfg: "${name}:${getUserHome name userCfg}") cfg.users
+  );
 
   enabledAliases = filterAttrs (_: target: target != null) cfg.hierarchy.aliases;
   aliasPairs = mapAttrsToList (path: target: { inherit path target; }) enabledAliases;
@@ -687,21 +691,28 @@ in
 
     environment = {
       etc."zenfs/manifest.json".source = manifest;
-      etc."systemd/user-environment-generators/20-zenfs".source =
+      etc."systemd/user-environment-generators/20-zenfs".source = lib.mkIf hasManagedUsers (
         pkgs.writeShellScript "zenfs-user-environment-generator" ''
-          if [ -n "$HOME" ]; then
+          case "''${USER-}:$HOME" in
+          ${managedIdentityPatterns})
             printf '%s\n' \
               "XDG_CACHE_HOME=$HOME/.private/Live" \
               "XDG_CONFIG_HOME=$HOME/.private/Config" \
               "XDG_DATA_HOME=$HOME/.private/Packages" \
               "XDG_STATE_HOME=$HOME/.private/State"
-          fi
-        '';
-      extraInit = ''
-        export XDG_CACHE_HOME="$HOME/.private/Live"
-        export XDG_CONFIG_HOME="$HOME/.private/Config"
-        export XDG_DATA_HOME="$HOME/.private/Packages"
-        export XDG_STATE_HOME="$HOME/.private/State"
+            ;;
+          esac
+        ''
+      );
+      extraInit = lib.mkIf hasManagedUsers ''
+        case "''${USER-}:$HOME" in
+        ${managedIdentityPatterns})
+          export XDG_CACHE_HOME="$HOME/.private/Live"
+          export XDG_CONFIG_HOME="$HOME/.private/Config"
+          export XDG_DATA_HOME="$HOME/.private/Packages"
+          export XDG_STATE_HOME="$HOME/.private/State"
+          ;;
+        esac
       '';
       systemPackages = [ zenfsctl ];
     };

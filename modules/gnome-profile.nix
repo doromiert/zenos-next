@@ -106,17 +106,6 @@ let
         jq '."shell-version" |= (. + ["50"] | unique)' "$metadata" > "$metadata.tmp"
         mv "$metadata.tmp" "$metadata"
       '';
-  gdmSystemAccount = pkgs.writeText "zenos-gdm-system-account" ''
-    [User]
-    SystemAccount=true
-  '';
-  gdmGreeterUsers = [
-    "gdm-greeter"
-    "gdm-greeter-2"
-    "gdm-greeter-3"
-    "gdm-greeter-4"
-    "gdm-greeter-5"
-  ];
   clockTheme = pkgs.runCommand "zenos-clock-theme" { } ''
     install -d "$out/share/themes/ClockOverride/gnome-shell"
     cat > "$out/share/themes/ClockOverride/gnome-shell/gnome-shell.css" <<'EOF'
@@ -313,11 +302,5 @@ in
       }
     ];
 
-    systemd.tmpfiles.rules = lib.optionals cfg.enableBranding (
-      [ "d /var/lib/AccountsService/users 0755 root root -" ]
-      ++ map (
-        user: "C /var/lib/AccountsService/users/${user} 0644 root root - ${gdmSystemAccount}"
-      ) gdmGreeterUsers
-    );
   };
 }

@@ -71,7 +71,6 @@ in
       oobeExtension
       setupApp
     ];
-    sessionVariables.ZENOS_OOBE = "1";
   };
 
   programs.dconf.profiles.user.databases = [
@@ -118,7 +117,10 @@ in
     after = [ "gnome-session.target" ];
     partOf = [ "graphical-session.target" ];
     path = lib.mkForce [ ];
-    environment.PATH = "/run/wrappers/bin:/run/current-system/sw/bin";
+    environment = {
+      PATH = "/run/wrappers/bin:/run/current-system/sw/bin";
+      ZENOS_OOBE = "1";
+    };
     serviceConfig = {
       Type = "exec";
       ExecStart = "${lib.getExe setupApp} --oobe";

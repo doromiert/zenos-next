@@ -7,7 +7,7 @@
 }:
 let
   commitId = inputs.self.shortRev or inputs.self.dirtyShortRev or "unknown";
-  gnomeSessionCommand = "${pkgs.coreutils}/bin/env XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_SESSION_DESKTOP=GNOME XDG_CURRENT_DESKTOP=GNOME GNOME_SHELL_SESSION_MODE=zenos-oobe ${config.services.displayManager.sessionData.wrapper} ${pkgs.gnome-session}/bin/gnome-session";
+  gnomeSessionCommand = "${pkgs.coreutils}/bin/env XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_SESSION_DESKTOP=GNOME XDG_CURRENT_DESKTOP=GNOME ZENOS_OOBE=1 ${config.services.displayManager.sessionData.wrapper} ${pkgs.gnome-session}/bin/gnome-session --session=zenos-oobe";
   zenosPlymouth = pkgs.callPackage ../packages/zenos-plymouth.nix {
     atkinson-hyperlegible = pkgs.zenos.apps.fonts.atkinson-hyperlegible;
     deviceName =
@@ -61,7 +61,13 @@ in
 
   services = {
     desktopManager.gnome.enable = true;
-    displayManager.defaultSession = "gnome";
+    displayManager = {
+      autoLogin = {
+        enable = lib.mkForce false;
+        user = lib.mkForce null;
+      };
+      gdm.enable = lib.mkForce false;
+    };
     fwupd.enable = true;
     fstrim.enable = true;
     gnome.gnome-initial-setup.enable = false;
@@ -87,14 +93,25 @@ in
     XDG_SESSION_DESKTOP = "GNOME";
   };
 
-  systemd.user.services."org.gnome.Shell@" = {
+  environment.etc."xdg/gnome-session/sessions/zenos-oobe.session".text = ''
+    [GNOME Session]
+    Name=ZenOS OOBE
+  '';
+
+  systemd.user.targets."gnome-session@zenos-oobe" = {
     overrideStrategy = "asDropin";
-    path = lib.mkForce [ ];
-    environment.PATH = "/run/wrappers/bin:/run/current-system/sw/bin";
-    serviceConfig.ExecStart = [
-      ""
-      "${pkgs.gnome-shell}/bin/gnome-shell --mode=zenos-oobe"
+    unitConfig.Requires = [
+      "gnome-session-services.target"
+      "org.gnome.Shell@zenos-oobe.service"
     ];
+  };
+
+  systemd.user.services."org.gnome.Shell@zenos-oobe" = {
+    overrideStrategy = "asDropin";
+    environment = {
+      PATH = lib.mkForce "/run/wrappers/bin:/run/current-system/sw/bin";
+      ZENOS_OOBE = "1";
+    };
   };
 
   environment.gnome.excludePackages = [ pkgs.gnome-tour ];
