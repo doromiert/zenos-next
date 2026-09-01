@@ -23,6 +23,7 @@ let
       inputs.self
     ]
   );
+  sourceRevision = builtins.substring 0 7 (inputs.self.rev or (inputs.self.dirtyRev or "unknown"));
   offlineSourceReferences = lib.concatMapStringsSep "\n" (source: "# ${source}") inputSources;
   flake = builtins.toFile "zenos-installed-config-flake.nix" ''
     # Store references retained for offline lock generation:
@@ -175,6 +176,7 @@ let
                   in
                   {
                     nixpkgs.overlays = [ zenpkgs.overlays.default ];
+                    zenos.system.release.revision = lib.mkDefault "${sourceRevision}";
                     zenos.platform.refind.enable = true;
                     zenfs.enable = true;
                     zenfs.users = lib.optionalAttrs oobeEnabled {

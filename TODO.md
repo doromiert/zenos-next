@@ -116,4 +116,4 @@
   - ROM MIME type support.
   - Doromiert's shell configuration 1:1 where practical, optimized for startup, including zoxide/Zsh and Vim-inspired commands such as `:q`.
   - Desktop-agnostic keyboard shortcut schema in `shortcuts.zcfg`, e.g. `zenos.system.shortcuts.windowing.close = [ "meta" "q" ];`.
-- [ ] Persist the installer ISO Git revision in the installed system version string: `ZenOS 1.0.0Nb (<hash>)`.
+- [x] Persist the installer ISO Git revision in the installed system version string: `ZenOS 1.0.0Nb (<hash>)`.

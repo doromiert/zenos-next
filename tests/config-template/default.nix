@@ -114,6 +114,10 @@ assert !(builtins.hasAttr "org.gnome.Shell@" finalConfig.systemd.user.services);
 assert !(builtins.hasAttr "org.gnome.Shell@" oobeConfig.systemd.user.services);
 assert builtins.hasAttr "org.gnome.Shell@zenos-oobe" oobeConfig.systemd.user.services;
 assert finalConfig.system.stateVersion == "26.05";
+assert finalConfig.zenos.system.release.revision != null;
+assert pkgs.lib.hasPrefix "1.0.0Nb (" finalConfig.zenos.system.release.full;
+assert pkgs.lib.hasInfix finalConfig.zenos.system.release.revision
+  finalConfig.system.nixos.extraOSReleaseArgs.PRETTY_NAME;
 assert finalConfig.fileSystems ? "/";
 assert oobeConfig.fileSystems ? "/";
 assert !finalConfig.boot.loader.refind.enable;
