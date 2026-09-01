@@ -20,13 +20,23 @@ let
         {
            zenos.desktops.gnome.enable = true;
            zenos.gnomeProfile.enable = true;
+           zenos.legacy = {
+             users.users.contract = {
+               isNormalUser = true;
+               group = "users";
+             };
+             zenfs.users.contract = {
+               home = "/home/contract";
+               group = "users";
+             };
+           };
            environment.gnome.excludePackages = [ pkgs.gnome-extension-manager ];
            environment.systemPackages = [ pkgs.zenos.theming.icons.zenos-icons ];
         }
         EOF
         done
         for host in final oobe; do
-          cat > "$out/hosts/$host/disko.nix" <<'EOF'
+          cat > "$out/hosts/$host/hardware-configuration.nix" <<'EOF'
         { ... }:
         {
           fileSystems."/" = {
@@ -36,7 +46,6 @@ let
         }
         EOF
         done
-        printf '{ ... }: { }\n' > "$out/hosts/final/hardware-configuration.nix"
         touch "$out/hosts/oobe/oobe.json"
 
         export HOME="$TMPDIR/home"
@@ -105,11 +114,19 @@ assert
   == "%d.%m.%Y";
 assert finalConfig.zenfs.enable;
 assert finalConfig.zenfs.hierarchy.aliases."/Boot" == "/boot";
-assert builtins.elem "/Config" finalConfig.zenfs.hierarchy.directories;
+assert finalConfig.zenfs.hierarchy.aliases."/Config" == "/etc";
+assert finalConfig.zenfs.hierarchy.aliases."/Packages" == "/nix";
+assert builtins.elem "/Live" finalConfig.zenfs.hierarchy.directories;
+assert finalConfig.zenfs.users.contract.home == "/home/contract";
+assert oobeConfig.zenfs.users.zenos.home == "/home/zenos";
+assert pkgs.lib.hasInfix "/Apps"
+  finalConfig.systemd.services.zenos-app-index.serviceConfig.ExecStart;
 assert finalConfig.nixpkgs.config.allowUnfree;
 assert oobeConfig.nixpkgs.config.allowUnfree;
 assert builtins.elem "zenos-icons" finalPackageNames;
 assert builtins.elem "zenos-icons" oobePackageNames;
+assert builtins.elem "zenos-nautilus-apps" finalPackageNames;
+assert builtins.elem "zenos-nautilus-apps" oobePackageNames;
 assert builtins.elem "zenos-setup" oobePackageNames;
 assert builtins.elem "gnome-shell-extension-zenos-oobe-mode" oobePackageNames;
 assert builtins.elem "zen-dsl" oobePackageNames;

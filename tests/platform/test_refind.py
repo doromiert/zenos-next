@@ -21,7 +21,8 @@ class RefindMenuTests(unittest.TestCase):
     def test_theme_hides_refind_tool_row(self):
         theme = Path(REFIND_THEME).read_text(encoding="utf-8")
         showtools = [line.strip() for line in theme.splitlines() if line.startswith("showtools")]
-        self.assertEqual(showtools, ["showtools"])
+        self.assertEqual(showtools, ["showtools shutdown,reboot,firmware"])
+        self.assertNotIn("shell", showtools[0].split()[1].split(","))
 
     def test_generates_menu_from_valid_systemd_boot_entries(self):
         with tempfile.TemporaryDirectory() as root:

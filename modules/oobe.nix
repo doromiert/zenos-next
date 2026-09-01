@@ -128,8 +128,7 @@ in
   };
 
   systemd.tmpfiles.rules = [
-    "d /Config 0755 root root -"
-    "d /Config/ZenOS 0755 root root -"
-    "d /Config/ZenOS/Flake 0775 ${oobeUser} users -"
+    "d /etc/ZenOS 0755 root root -"
+    "d /etc/ZenOS/Flake 0775 ${oobeUser} users -"
   ];
 }

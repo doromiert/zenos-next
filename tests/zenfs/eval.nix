@@ -82,12 +82,16 @@ assert builtins.elem "nodev" cfg.fileSystems."/home/alice/Documents".options;
 assert builtins.elem "nosuid" cfg.fileSystems."/home/alice/Documents".options;
 assert builtins.elem "noexec" cfg.fileSystems."/home/alice/Documents".options;
 assert builtins.elem "ro" cfg.fileSystems."/home/alice/Documents".options;
-assert cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.config".d.mode == "0700";
-assert cfg.environment.sessionVariables.XDG_STATE_HOME == "$HOME/.local/state";
+assert cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.private/Config".d.mode == "0700";
+assert cfg.environment.sessionVariables.XDG_CONFIG_HOME == "$HOME/.private/Config";
+assert cfg.environment.sessionVariables.XDG_STATE_HOME == "$HOME/.private/State";
 assert cfg.zenfs.hierarchy.aliases."/Boot" == "/boot";
 assert cfg.zenfs.hierarchy.aliases."/System/Config" == "/etc";
-assert !(cfg.zenfs.hierarchy.aliases ? "/Config");
-assert builtins.elem "/Config" cfg.zenfs.hierarchy.directories;
+assert cfg.zenfs.hierarchy.aliases."/Config" == "/etc";
+assert cfg.zenfs.hierarchy.aliases."/Packages" == "/nix";
+assert cfg.zenfs.hierarchy.aliases."/Live/Runtime" == "/run";
+assert builtins.elem "/Live" cfg.zenfs.hierarchy.directories;
+assert nixpkgs.lib.hasInfix "/Apps" cfg.systemd.services.zenos-app-index.serviceConfig.ExecStart;
 assert
   cfg.systemd.services.zenfs-roaming-work-marker.unitConfig.RequiresMountsFor == [
     "/Mount/work"

@@ -130,6 +130,12 @@ let
             };
 
           mkZcfgPackage = pkgs: pkgs.callPackage (zenosSource + "/packages/zen-dsl.nix") { };
+          mkAppIndex = pkgs: pkgs.callPackage (zenosSource + "/packages/app-index") { };
+          mkNautilusApps =
+            pkgs:
+            pkgs.callPackage (zenosSource + "/packages/nautilus-apps") {
+              appIndex = mkAppIndex pkgs;
+            };
 
           mkHost =
             hostName:
@@ -168,7 +174,13 @@ let
                   {
                     nixpkgs.overlays = [ zenpkgs.overlays.default ];
                     zenos.platform.refind.enable = true;
-                    zenfs.enable = true;
+                     zenfs.enable = true;
+                     zenfs.users = lib.optionalAttrs oobeEnabled {
+                       zenos = {
+                         home = "/home/zenos";
+                         group = "users";
+                       };
+                     };
                     zenos.gnomeProfile = {
                       inherit extensionPackages;
                       extensionIds = lib.mkDefault recommendedExtensionIds;
@@ -197,7 +209,8 @@ let
                         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH4+fQMTy7FaLwqDOumL1y3uW+WMWpoc12MEeQXeF+VF zenos-next-vm-debug"
                       ];
                     };
-                    environment.systemPackages = lib.optional oobeEnabled (mkZcfgPackage pkgs);
+                    environment.systemPackages = [ (mkNautilusApps pkgs) ]
+                      ++ lib.optional oobeEnabled (mkZcfgPackage pkgs);
                     systemd.user.services.zenos-oobe.environment.ZENOS_SETUP_DRY_RUN =
                       lib.mkIf oobeEnabled "0";
                     systemd.user.services.zenos-oobe.environment.ZENOS_WALLPAPER_FILE =
@@ -217,9 +230,7 @@ let
               ]
               ++ lib.optional (builtins.pathExists (hostDir + "/hardware-configuration.nix")) (
                 hostDir + "/hardware-configuration.nix"
-              )
-              ++ lib.optional (builtins.pathExists (hostDir + "/disko.nix")) (hostDir + "/disko.nix")
-              ++ lib.optional (builtins.pathExists (hostDir + "/graphics.nix")) (hostDir + "/graphics.nix");
+              );
               # Popcorn disabled: re-enable the generated kernel module import with the flake input.
               # ++ lib.optional (builtins.pathExists (hostDir + "/kernel.nix")) (hostDir + "/kernel.nix");
             };

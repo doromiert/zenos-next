@@ -11,10 +11,62 @@ import sys
 
 sys.path.insert(0, str(SETUP_SOURCE))
 
-from src.builder import process_installer_payload
+from src.builder import build_config_documents, process_installer_payload
+from src.runner import build_disko_zcfg, build_graphics_config
 
 
 class SetupZcfgContractTests(unittest.TestCase):
+    def test_split_installed_config_compiles_with_drive_and_graphics_documents(self):
+        payload = {
+            "oobe": True,
+            "pages": [
+                {"id": "computer_name", "hostname": "zenos-test"},
+                {
+                    "id": "user",
+                    "fullname": "Test User",
+                    "username": "tester",
+                    "password": "must-not-appear",
+                },
+                {
+                    "id": "desktop",
+                    "install_de": True,
+                    "desktop_environment": "gnome",
+                },
+                {
+                    "id": "software",
+                    "apps": [
+                        {
+                            "app": "epiphany",
+                            "enabled": False,
+                            "includedByDesktop": True,
+                        }
+                    ],
+                },
+            ],
+        }
+        documents = build_config_documents(payload, password_hash="$6$contract$hash")
+        documents["drives.zcfg"] = build_disko_zcfg("/dev/vda")
+        documents["graphics.zcfg"] = build_graphics_config(
+            [{"address": "0000:00:02.0", "bootVga": True, "vendor": 0x8086}]
+        )
+        imports = "".join(
+            f"import ./{name};\n" for name in sorted(set(documents) - {"host.zcfg"})
+        )
+        documents["host.zcfg"] = imports
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, source in documents.items():
+                (root / name).write_text(source, encoding="utf-8")
+            resolved = Loader().load(root / "host.zcfg")
+
+        compiled = compile_nix(resolved)
+        self.assertIn("pkgs.zenos.legacy.epiphany", compiled)
+        self.assertIn("disko = {", compiled)
+        self.assertIn("videoDrivers = [", compiled)
+        self.assertIn("zenfs = {", compiled)
+        self.assertNotIn("must-not-appear", compiled)
+
     def test_setup_output_parses_and_compiles_with_real_zen_dsl(self):
         payload = {
             "oobe": False,

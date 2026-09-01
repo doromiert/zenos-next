@@ -100,9 +100,7 @@
             ]
             ++ lib.optional (builtins.pathExists (hostDir + "/hardware-configuration.nix")) (
               hostDir + "/hardware-configuration.nix"
-            )
-            ++ lib.optional (builtins.pathExists (hostDir + "/disko.nix")) (hostDir + "/disko.nix")
-            ++ lib.optional (builtins.pathExists (hostDir + "/graphics.nix")) (hostDir + "/graphics.nix");
+            );
           # Popcorn disabled: re-enable the generated kernel module import with the flake input.
           # ++ lib.optional (builtins.pathExists (hostDir + "/kernel.nix")) (hostDir + "/kernel.nix");
         };

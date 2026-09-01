@@ -23,6 +23,7 @@ let
     ;
   cfg = config.zenfs;
   zenfsctl = pkgs.callPackage ../../packages/zenfsctl { };
+  appIndex = pkgs.callPackage ../../packages/app-index { };
 
   enabledAliases = filterAttrs (_: target: target != null) cfg.hierarchy.aliases;
   aliasPairs = mapAttrsToList (path: target: { inherit path target; }) enabledAliases;
@@ -184,6 +185,32 @@ let
     }
   );
 
+  hiddenRootEntries = pkgs.writeText "zenfs-hidden-root-entries" (
+    concatMapStringsSep "\n" (entry: entry) cfg.hierarchy.hiddenRootEntries + "\n"
+  );
+
+  hierarchyMigration = ''
+    if [ -L /Live ] && [ "$(${pkgs.coreutils}/bin/readlink -- /Live)" = /run ]; then
+      ${pkgs.coreutils}/bin/rm -- /Live
+    fi
+    if [ -L /Packages ] && [ "$(${pkgs.coreutils}/bin/readlink -- /Packages)" = /nix/store ]; then
+      ${pkgs.coreutils}/bin/rm -- /Packages
+    fi
+    if [ -d /Config ] && [ ! -L /Config ]; then
+      if [ -e /Config/ZenOS ]; then
+        if [ -e /etc/ZenOS ]; then
+          echo "ZenFS: refusing to merge both /Config/ZenOS and /etc/ZenOS" >&2
+          exit 1
+        fi
+        ${pkgs.coreutils}/bin/mv -- /Config/ZenOS /etc/ZenOS
+      fi
+      ${pkgs.coreutils}/bin/rmdir -- /Config || {
+        echo "ZenFS: refusing to replace non-empty /Config" >&2
+        exit 1
+      }
+    fi
+  '';
+
   aliasActivation = concatMapStringsSep "\n" (
     alias:
     let
@@ -235,12 +262,18 @@ in
       type = types.attrsOf (types.nullOr types.str);
       default = {
         "/Boot" = "/boot";
+        "/Config" = "/etc";
         "/Users" = "/home";
-        "/Packages" = "/nix/store";
+        "/Packages" = "/nix";
         "/System/Config" = "/etc";
         "/System/Current" = "/run/current-system";
         "/System/Index" = "/run/current-system/sw";
-        "/Live" = "/run";
+        "/Live/Devices" = "/dev";
+        "/Live/Processes" = "/proc";
+        "/Live/Runtime" = "/run";
+        "/Live/System" = "/sys";
+        "/Live/Temporary" = "/tmp";
+        "/Live/Variable" = "/var";
         "/Mount" = "/mnt";
       };
       description = ''
@@ -254,10 +287,38 @@ in
       type = types.listOf types.str;
       default = [
         "/Apps"
-        "/Config"
+        "/Live"
         "/System"
       ];
       description = "Real top-level ZenFS directories created before hierarchy aliases.";
+    };
+
+    hierarchy.hiddenRootEntries = mkOption {
+      type = types.listOf types.str;
+      default = [
+        "bin"
+        "boot"
+        "dev"
+        "etc"
+        "home"
+        "lib"
+        "lib32"
+        "lib64"
+        "media"
+        "mnt"
+        "nix"
+        "opt"
+        "proc"
+        "root"
+        "run"
+        "sbin"
+        "srv"
+        "sys"
+        "tmp"
+        "usr"
+        "var"
+      ];
+      description = "FHS implementation paths hidden by file managers at the filesystem root.";
     };
 
     users = mkOption {
@@ -285,11 +346,13 @@ in
               privateDirectories = mkOption {
                 type = types.listOf types.str;
                 default = [
-                  ".cache"
-                  ".config"
-                  ".local"
-                  ".local/share"
-                  ".local/state"
+                  ".private"
+                  ".private/Apps"
+                  ".private/Config"
+                  ".private/Live"
+                  ".private/Mount"
+                  ".private/Packages"
+                  ".private/State"
                 ];
                 description = "Private directories relative to the user's home.";
               };
@@ -497,21 +560,36 @@ in
     environment = {
       etc."zenfs/manifest.json".source = manifest;
       sessionVariables = {
-        XDG_CACHE_HOME = "$HOME/.cache";
-        XDG_CONFIG_HOME = "$HOME/.config";
-        XDG_DATA_HOME = "$HOME/.local/share";
-        XDG_STATE_HOME = "$HOME/.local/state";
+        XDG_CACHE_HOME = "$HOME/.private/Live";
+        XDG_CONFIG_HOME = "$HOME/.private/Config";
+        XDG_DATA_HOME = "$HOME/.private/Packages";
+        XDG_STATE_HOME = "$HOME/.private/State";
       };
       systemPackages = [ zenfsctl ];
     };
 
     fileSystems = driveFileSystems // privateFileSystems;
-    systemd.services = markerServices;
+    systemd.services = markerServices // {
+      zenos-app-index = {
+        description = "Build the ZenOS application directory";
+        wantedBy = [ "multi-user.target" ];
+        wants = [ "systemd-tmpfiles-setup.service" ];
+        after = [ "systemd-tmpfiles-setup.service" ];
+        before = [ "display-manager.service" ];
+        path = [ config.system.path ];
+        restartTriggers = [ config.system.path ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${lib.getExe appIndex} --home /var/empty --target /Apps";
+        };
+      };
+    };
     systemd.tmpfiles.settings."10-zenfs" = tmpfileSettings;
+    systemd.tmpfiles.rules = [ "L+ /.hidden - - - - ${hiddenRootEntries}" ];
 
     system.activationScripts.zenfs-hierarchy = {
       deps = [ "etc" ];
-      text = directoryActivation + "\n" + aliasActivation;
+      text = hierarchyMigration + "\n" + directoryActivation + "\n" + aliasActivation;
     };
   };
 }

@@ -139,28 +139,6 @@ let
     }
     EOF
   '';
-  hiddenRootEntries = pkgs.writeText "zenos-hidden-root-entries" ''
-    bin
-    boot
-    dev
-    etc
-    home
-    iso
-    iso-config
-    iso-config-template
-    lib64
-    mnt
-    nix
-    opt
-    proc
-    root
-    run
-    srv
-    sys
-    tmp
-    usr
-    var
-  '';
   desktopItems = map pkgs.makeDesktopItem [
     {
       name = "zenos-recovery-report";
@@ -245,7 +223,11 @@ in
 
   zenfs = {
     enable = true;
-    hierarchy.directories = [ "/System" ];
+    hierarchy.hiddenRootEntries = [
+      "iso"
+      "iso-config"
+      "iso-config-template"
+    ];
     users.zenos = {
       home = "/home/zenos";
       group = "users";
@@ -267,28 +249,6 @@ in
       ExecStart = lib.getExe setupApp;
       Restart = "on-failure";
       RestartSec = 2;
-    };
-  };
-
-  systemd.services.zenos-app-index = {
-    description = "Build the ZenOS application directory";
-    wantedBy = [
-      "multi-user.target"
-      "greetd.service"
-    ];
-    wants = [ "systemd-tmpfiles-setup.service" ];
-    after = [ "systemd-tmpfiles-setup.service" ];
-    before = [ "greetd.service" ];
-    unitConfig = {
-      ConditionPathIsDirectory = "/home/zenos";
-      RequiresMountsFor = [ "/home/zenos" ];
-    };
-    path = [ config.system.path ];
-    serviceConfig = {
-      Type = "oneshot";
-      User = "zenos";
-      Group = "users";
-      ExecStart = "${lib.getExe appIndex} --home /home/zenos --user zenos --target /Apps";
     };
   };
 
@@ -637,8 +597,6 @@ in
   systemd.tmpfiles.rules = [
     "L+ /iso-config-template - - - - ${configTemplate}"
     "L+ /iso-config - - - - ${configTemplate}"
-    "L+ /.hidden - - - - ${hiddenRootEntries}"
-    "d /Apps 0755 zenos users -"
     "d /home/zenos/.config/burn-my-windows/profiles 0755 zenos users -"
     "d /home/zenos/.cache/clipboard-indicator@tudmotu.com 0700 zenos users -"
     "L+ /home/zenos/.config/burn-my-windows/profiles/zenos.conf - zenos users - ${burnMyWindowsProfile}"
