@@ -24,10 +24,11 @@ let
              users.users.contract = {
                isNormalUser = true;
                group = "users";
+               home = "/Users/contract";
              };
-           };
-           zenfs.users.contract = {
-             home = "/home/contract";
+            };
+            zenfs.users.contract = {
+              home = "/Users/contract";
              group = "users";
            };
            disko.devices.disk.generated = {
@@ -148,7 +149,8 @@ assert finalConfig.zenfs.hierarchy.aliases."/Boot" == "/boot";
 assert finalConfig.zenfs.hierarchy.aliases."/Config" == "/etc";
 assert finalConfig.zenfs.hierarchy.aliases."/Packages" == "/nix";
 assert builtins.elem "/Live" finalConfig.zenfs.hierarchy.directories;
-assert finalConfig.zenfs.users.contract.home == "/home/contract";
+assert finalConfig.users.users.contract.home == "/Users/contract";
+assert finalConfig.zenfs.users.contract.home == "/Users/contract";
 assert oobeConfig.zenfs.users.zenos.home == "/run/zenos-oobe";
 assert pkgs.lib.hasInfix "/Apps"
   finalConfig.systemd.services.zenos-app-index.serviceConfig.ExecStart;

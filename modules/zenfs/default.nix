@@ -71,7 +71,7 @@ let
         let
           userCfg =
             cfg.users.${mount.user} or {
-              home = "/home/${mount.user}";
+              home = "/Users/${mount.user}";
               group = "users";
             };
           home = getUserHome mount.user userCfg;
@@ -340,6 +340,21 @@ let
         exit 1
       }
     fi
+    if [ -L /Users ] && [ "$(${pkgs.coreutils}/bin/readlink -- /Users)" = /home ] \
+      && [ -d /home ] && [ ! -L /home ]; then
+      if ${pkgs.util-linux}/bin/mountpoint -q /home; then
+        echo "ZenFS: refusing to migrate a separately mounted /home" >&2
+        exit 1
+      fi
+      ${pkgs.coreutils}/bin/rm -- /Users
+      if ${pkgs.coreutils}/bin/mv -- /home /Users; then
+        ${pkgs.coreutils}/bin/ln -s -- /Users /home
+      else
+        ${pkgs.coreutils}/bin/ln -s -- /home /Users
+        echo "ZenFS: failed to migrate /home to /Users" >&2
+        exit 1
+      fi
+    fi
   '';
 
   aliasActivation = concatMapStringsSep "\n" (
@@ -394,7 +409,7 @@ in
       default = {
         "/Boot" = "/boot";
         "/Config" = "/etc";
-        "/Users" = "/home";
+        "/home" = "/Users";
         "/Packages" = "/nix";
         "/System/Config" = "/etc";
         "/System/Current" = "/run/current-system";
@@ -420,6 +435,7 @@ in
         "/Apps"
         "/Live"
         "/System"
+        "/Users"
         "/mnt"
       ];
       description = "Real top-level ZenFS directories created before hierarchy aliases.";
@@ -462,7 +478,7 @@ in
             options = {
               home = mkOption {
                 type = types.str;
-                default = "/home/${name}";
+                default = "/Users/${name}";
                 description = "Absolute home path managed for this user.";
               };
               group = mkOption {
@@ -770,5 +786,6 @@ in
       deps = [ "etc" ];
       text = hierarchyMigration + "\n" + directoryActivation + "\n" + aliasActivation;
     };
+    system.activationScripts.users.deps = [ "zenfs-hierarchy" ];
   };
 }

@@ -102,7 +102,7 @@
   - Use UMU-Proton for games; do not treat raw Proton as a general-purpose default runner.
   - Let users choose the runner/compatibility layer per app through the app details window.
 - [x] Ensure `/mnt` exists before `/Mount` is created and validate the default mount hierarchy on fresh installs.
-- [ ] Make `/Users` the canonical real home root and reverse compatibility to `/home -> /Users`; provide stricter per-app namespace compatibility later.
+- [x] Make `/Users` the canonical real home root and reverse compatibility to `/home -> /Users`; provide stricter per-app namespace compatibility later.
 - [x] Enable Firefox customization by default for new installs and in the Setup software defaults.
 - [ ] Document and rationalize the currently shipped custom command set.
 - [ ] Make every program option enable its package automatically; add program modules for all applications selectable in Setup.

@@ -599,11 +599,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788293964,
-        "narHash": "sha256-hIdGXLySdbra4ydBJc5lKyctjG5p/BNIdJN7BrympPw=",
+        "lastModified": 1788294744,
+        "narHash": "sha256-WOwzke3RinADzf7EYJM/dXaqB1GbxAXVoJTpdDH1+E0=",
         "owner": "zenos-n",
         "repo": "zenos-setup",
-        "rev": "0cf545e98fad9b91f07a8713cd9e174127101baf",
+        "rev": "3c89a02a8d4e37d946b9dc96c62190bc1440c446",
         "type": "github"
       },
       "original": {

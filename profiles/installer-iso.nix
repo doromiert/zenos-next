@@ -229,7 +229,7 @@ in
       "iso-config-template"
     ];
     users.zenos = {
-      home = "/home/zenos";
+      home = "/Users/zenos";
       group = "users";
     };
   };
@@ -260,6 +260,7 @@ in
       zenos = {
         isNormalUser = true;
         description = "ZenOS Installer";
+        home = "/Users/zenos";
         initialHashedPassword = "";
         openssh.authorizedKeys.keys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH4+fQMTy7FaLwqDOumL1y3uW+WMWpoc12MEeQXeF+VF zenos-next-vm-debug"
@@ -475,7 +476,7 @@ in
           lib.gvariant.mkEmptyArray lib.gvariant.type.string;
         "org/gnome/shell/extensions/alphabetical-app-grid".folder-order-position = "end";
         "org/gnome/shell/extensions/burn-my-windows" = {
-          active-profile = "/home/zenos/.config/burn-my-windows/profiles/zenos.conf";
+          active-profile = "/Users/zenos/.config/burn-my-windows/profiles/zenos.conf";
           show-support-dialog = false;
         };
         "org/gnome/shell/extensions/clipboard-indicator" = {
@@ -597,17 +598,17 @@ in
   systemd.tmpfiles.rules = [
     "L+ /iso-config-template - - - - ${configTemplate}"
     "L+ /iso-config - - - - ${configTemplate}"
-    "d /home/zenos/.config/burn-my-windows/profiles 0755 zenos users -"
-    "d /home/zenos/.cache/clipboard-indicator@tudmotu.com 0700 zenos users -"
-    "L+ /home/zenos/.config/burn-my-windows/profiles/zenos.conf - zenos users - ${burnMyWindowsProfile}"
-    "d /home/zenos/.mozilla 0700 zenos users -"
-    "d /home/zenos/.mozilla/firefox 0700 zenos users -"
-    "d /home/zenos/.mozilla/firefox/default 0700 zenos users -"
-    "d /home/zenos/.mozilla/firefox/default/chrome 0755 zenos users -"
-    "L+ /home/zenos/.mozilla/firefox/profiles.ini - zenos users - ${firefoxProfiles}"
-    "L+ /home/zenos/.mozilla/firefox/default/chrome/gnome-theme - zenos users - ${firefoxGnomeTheme}"
-    "L+ /home/zenos/.mozilla/firefox/default/chrome/userChrome.css - zenos users - ${firefoxUserChrome}"
-    "L+ /home/zenos/.mozilla/firefox/default/chrome/userContent.css - zenos users - ${firefoxUserContent}"
+    "d /Users/zenos/.config/burn-my-windows/profiles 0755 zenos users -"
+    "d /Users/zenos/.cache/clipboard-indicator@tudmotu.com 0700 zenos users -"
+    "L+ /Users/zenos/.config/burn-my-windows/profiles/zenos.conf - zenos users - ${burnMyWindowsProfile}"
+    "d /Users/zenos/.mozilla 0700 zenos users -"
+    "d /Users/zenos/.mozilla/firefox 0700 zenos users -"
+    "d /Users/zenos/.mozilla/firefox/default 0700 zenos users -"
+    "d /Users/zenos/.mozilla/firefox/default/chrome 0755 zenos users -"
+    "L+ /Users/zenos/.mozilla/firefox/profiles.ini - zenos users - ${firefoxProfiles}"
+    "L+ /Users/zenos/.mozilla/firefox/default/chrome/gnome-theme - zenos users - ${firefoxGnomeTheme}"
+    "L+ /Users/zenos/.mozilla/firefox/default/chrome/userChrome.css - zenos users - ${firefoxUserChrome}"
+    "L+ /Users/zenos/.mozilla/firefox/default/chrome/userContent.css - zenos users - ${firefoxUserContent}"
   ];
 
   isoImage = {

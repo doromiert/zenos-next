@@ -55,7 +55,7 @@ let
         zenfs = {
           enable = true;
           hierarchy.aliases = {
-            "/Users" = "/Users/backing";
+            "/home" = "/home/backing";
           };
           roaming.drives.unsafe = {
             device = "/dev/null";
@@ -84,20 +84,20 @@ assert
     "nosuid"
     "noexec"
   ];
-assert builtins.elem "nodev" cfg.fileSystems."/home/alice/Documents".options;
-assert builtins.elem "nosuid" cfg.fileSystems."/home/alice/Documents".options;
-assert builtins.elem "noexec" cfg.fileSystems."/home/alice/Documents".options;
-assert builtins.elem "ro" cfg.fileSystems."/home/alice/Documents".options;
-assert cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.private/Config".d.mode == "0700";
+assert builtins.elem "nodev" cfg.fileSystems."/Users/alice/Documents".options;
+assert builtins.elem "nosuid" cfg.fileSystems."/Users/alice/Documents".options;
+assert builtins.elem "noexec" cfg.fileSystems."/Users/alice/Documents".options;
+assert builtins.elem "ro" cfg.fileSystems."/Users/alice/Documents".options;
+assert cfg.systemd.tmpfiles.settings."10-zenfs"."/Users/alice/.private/Config".d.mode == "0700";
 assert
-  cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.config".L.argument
-  == "/home/alice/.private/Config";
+  cfg.systemd.tmpfiles.settings."10-zenfs"."/Users/alice/.config".L.argument
+  == "/Users/alice/.private/Config";
 assert
-  cfg.systemd.tmpfiles.settings."10-zenfs"."/home/alice/.private/Config/user-dirs.dirs".C.mode
+  cfg.systemd.tmpfiles.settings."10-zenfs"."/Users/alice/.private/Config/user-dirs.dirs".C.mode
   == "0600";
 assert nixpkgs.lib.hasInfix "XDG_CONFIG_HOME" cfg.environment.extraInit;
 assert cfg.environment.etc ? "systemd/user-environment-generators/20-zenfs";
-assert nixpkgs.lib.hasInfix "alice:/home/alice" userEnvironmentGenerator;
+assert nixpkgs.lib.hasInfix "alice:/Users/alice" userEnvironmentGenerator;
 assert !(nixpkgs.lib.hasInfix "gdm-greeter" userEnvironmentGenerator);
 assert cfg.systemd.user.services.zenfs-user-init.serviceConfig.Type == "oneshot";
 assert cfg.systemd.user.services.zenos-user-app-index.serviceConfig.Type == "oneshot";
@@ -107,6 +107,11 @@ assert
 assert nixpkgs.lib.hasInfix "%h/.private/Apps" (
   builtins.head cfg.systemd.user.services.zenos-user-app-index.serviceConfig.ExecStart
 );
+assert cfg.zenfs.hierarchy.aliases."/home" == "/Users";
+assert builtins.elem "/Users" cfg.zenfs.hierarchy.directories;
+assert nixpkgs.lib.hasInfix "refusing to migrate a separately mounted /home"
+  cfg.system.activationScripts.zenfs-hierarchy.text;
+assert builtins.elem "zenfs-hierarchy" cfg.system.activationScripts.users.deps;
 assert cfg.zenfs.hierarchy.aliases."/Boot" == "/boot";
 assert cfg.zenfs.hierarchy.aliases."/System/Config" == "/etc";
 assert cfg.zenfs.hierarchy.aliases."/Config" == "/etc";
@@ -122,7 +127,7 @@ assert
   ];
 {
   aliases = builtins.attrNames cfg.zenfs.hierarchy.aliases;
-  privateMount = cfg.fileSystems."/home/alice/Documents";
+  privateMount = cfg.fileSystems."/Users/alice/Documents";
   roamingMount = cfg.fileSystems."/Mount/work";
   tmpfiles = builtins.attrNames cfg.systemd.tmpfiles.settings."10-zenfs";
 }
