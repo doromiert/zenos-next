@@ -7,6 +7,7 @@ import unittest
 
 REFIND_SCRIPT = os.environ.get("REFIND_SCRIPT")
 REFIND_THEME = os.environ.get("REFIND_THEME")
+REFIND_CONFIG = os.environ.get("REFIND_CONFIG")
 if REFIND_SCRIPT:
     SPEC = importlib.util.spec_from_file_location("zenos_refind", REFIND_SCRIPT)
     REFIND = importlib.util.module_from_spec(SPEC)
@@ -17,12 +18,24 @@ else:
 
 @unittest.skipUnless(REFIND_SCRIPT, "REFIND_SCRIPT is not configured for this check")
 class RefindMenuTests(unittest.TestCase):
-    @unittest.skipUnless(REFIND_THEME, "REFIND_THEME is not configured for this check")
-    def test_theme_excludes_efi_shell(self):
+    @unittest.skipUnless(
+        REFIND_THEME and REFIND_CONFIG,
+        "rEFInd resources are not configured for this check",
+    )
+    def test_default_tools_exclude_efi_shell(self):
         theme = Path(REFIND_THEME).read_text(encoding="utf-8")
-        showtools = [line.strip() for line in theme.splitlines() if line.startswith("showtools")]
-        self.assertEqual(showtools, ["showtools shutdown,reboot,firmware"])
-        self.assertNotIn("shell", showtools[0].split()[1].split(","))
+        config = Path(REFIND_CONFIG).read_text(encoding="utf-8")
+        active_lines = [
+            line.strip()
+            for line in (theme + "\n" + config).splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertFalse(any(line.startswith("showtools") for line in active_lines))
+        self.assertIn(
+            "dont_scan_tools shell.efi,shellx64.efi",
+            active_lines,
+        )
+        self.assertIn("dont_scan_firmware shell", active_lines)
 
     def test_generates_menu_from_valid_systemd_boot_entries(self):
         with tempfile.TemporaryDirectory() as root:

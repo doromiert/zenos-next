@@ -231,8 +231,9 @@
           export ZENOS_OPS_SOURCE=${./packages/zenos-ops}
         '';
         platform-unit = pythonCheck "zenos-platform-unit-tests" "platform" ''
-           export REFIND_SCRIPT=${./scripts/refind.py}
-           export REFIND_THEME=${./assets/refind/themes/zenos-picker/theme.conf}
+          export REFIND_SCRIPT=${./scripts/refind.py}
+          export REFIND_THEME=${./assets/refind/themes/zenos-picker/theme.conf}
+          export REFIND_CONFIG=${./assets/refind/refind.conf}
           export ZEN_HARDWARE_SCRIPT=${./packages/platform-tools/zen-hardware/zen_hardware.py}
           export ZEN_HARDWARE_DATABASE=${./packages/platform-tools/zen-hardware/presets.json}
           export ZEN_XR_SUPERVISOR_SCRIPT=${./packages/platform-tools/xr-supervisor/zen_xr_supervisor.py}

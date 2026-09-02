@@ -2,7 +2,7 @@
 
 ## Next session priorities
 
-- [ ] Fix the installed rEFInd configuration so EFI Shell is actually hidden; verify the generated menu and theme config, not only the source template.
+- [x] Fix the installed rEFInd configuration so EFI Shell is actually hidden; verify the generated menu and theme config, not only the source template.
 - [ ] Hide the `.desktop` suffix in `/Apps` and `~/.private/Apps` while retaining `application/x-desktop` classification and validated token launching.
 - [ ] Remove or namespace every home dotfile and dot-directory except `.private`, including shell history, SSH/GnuPG state, Mozilla state, Nix profiles, and compatibility links; applications must use XDG relocation or explicit per-app compatibility namespaces.
 - [ ] Preconfigure Flatpak and build the Windows application compatibility system plus its configuration UI.
