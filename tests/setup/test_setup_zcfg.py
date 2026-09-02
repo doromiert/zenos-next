@@ -62,7 +62,8 @@ class SetupZcfgContractTests(unittest.TestCase):
 
         compiled = compile_nix(resolved)
         self.assertIn("pkgs.zenos.legacy.epiphany", compiled)
-        self.assertIn("disko = {", compiled)
+        self.assertIn("zenos = {", compiled)
+        self.assertIn("disks = {", compiled)
         self.assertIn("videoDrivers = [", compiled)
         self.assertIn("zenfs = {", compiled)
         self.assertNotIn("legacy = {", compiled)
@@ -103,7 +104,8 @@ class SetupZcfgContractTests(unittest.TestCase):
         self.assertNotIn("zenos = {", source)
         self.assertNotIn("$pkgs.zenos", source)
         self.assertIn("legacy = {", source)
-        self.assertIn("$pkgs.catalog.firefox", source)
+        self.assertIn("programs = {", source)
+        self.assertIn("firefox = {", source)
         self.assertIn("$pkgs.legacy.epiphany", source)
 
         with tempfile.TemporaryDirectory() as directory:
@@ -114,9 +116,10 @@ class SetupZcfgContractTests(unittest.TestCase):
         compiled = compile_nix(resolved)
         self.assertIn("zenos = {", compiled)
         self.assertIn("environment = {", compiled)
-        self.assertIn("pkgs.zenos.catalog.firefox", compiled)
+        self.assertIn("programs = {", compiled)
+        self.assertIn("firefox = {", compiled)
         self.assertIn("pkgs.zenos.legacy.epiphany", compiled)
-        self.assertIn('stateVersion = "26.05";', compiled)
+        self.assertIn('stateVersion = "1.0.0";', compiled)
         self.assertIn("gnomeProfile = {", compiled)
         self.assertIn("enableExtensions = true;", compiled)
         self.assertIn('directionKeys = "vim";', compiled)
