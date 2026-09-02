@@ -56,6 +56,7 @@
 
       coreModules = [
         ./modules/zenfs
+        ./modules/app-platform.nix
         ./modules/maintenance
         ./modules/janitor
         ./modules/platform
@@ -149,6 +150,7 @@
         base = import ./modules/base.nix;
         oobe = import ./modules/oobe.nix;
         zenfs = import ./modules/zenfs;
+        app-platform = import ./modules/app-platform.nix;
         maintenance = import ./modules/maintenance;
         janitor = import ./modules/janitor;
         gnome-profile = import ./modules/gnome-profile.nix;
@@ -222,6 +224,11 @@
           import ./tests/zenfs/eval.nix {
             inherit nixpkgs system;
             zenpkgs = inputs.zenpkgs;
+          }
+        );
+        app-platform-eval = forceEvalCheck "app-platform-evaluation" (
+          import ./tests/app-platform/eval.nix {
+            inherit nixpkgs system;
           }
         );
         zenfs-unit = pythonCheck "zenfs-unit-tests" "zenfs" ''

@@ -46,7 +46,21 @@ It never escalates to system scope implicitly.
 ```text
 zen-flatpak install APP_ID [--remote REMOTE]
 zen-flatpak remove APP_ID
-zen-flatpak list
+zen-flatpak list [--scope user|system|all]
+zen-flatpak inspect APP_ID
+```
+
+### `zen-compat`
+
+Stores per-application compatibility policy by stable app token. Synthetic
+homes keep hardcoded dotfiles out of the real home while selectively sharing
+standard user directories and the ZenFS private tree.
+
+```text
+zen-compat show TOKEN
+zen-compat configure TOKEN [--synthetic-home | --no-synthetic-home]
+                           [--share DIRECTORY ... | --clear-shares]
+zen-compat run TOKEN -- COMMAND [ARGUMENT ...]
 ```
 
 ## Internal system helpers

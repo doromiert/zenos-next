@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -19,6 +20,7 @@ APP_REF = re.compile(
     r"^app/[A-Za-z0-9][A-Za-z0-9._-]*/(?:x86_64|aarch64)/[A-Za-z0-9._-]+$"
 )
 REMOTE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+SCOPES = ("user", "system")
 
 
 def validate_app(value: str) -> str:
@@ -39,7 +41,7 @@ def refresh_index(home: Path, target: Path, user: str | None = None) -> None:
 
 def install(
     application: str,
-    remote: str = "flathub",
+    remote: str | None = None,
     *,
     home: Path = Path.home(),
     target: Path | None = None,
@@ -47,7 +49,9 @@ def install(
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> None:
     application = validate_app(application)
-    remote = validate_remote(remote)
+    remote = validate_remote(
+        remote or os.environ.get("ZENOS_FLATPAK_REMOTE", "zenos-flathub")
+    )
     run(
         [
             "flatpak",
@@ -88,12 +92,22 @@ def remove(
 
 def list_installed(
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
-) -> list[dict[str, str]]:
+    *,
+    scope: str = "user",
+) -> list[dict[str, object]]:
+    if scope not in (*SCOPES, "all"):
+        raise ValueError(f"invalid Flatpak scope: {scope!r}")
+    if scope == "all":
+        return [
+            application
+            for installation in SCOPES
+            for application in list_installed(run, scope=installation)
+        ]
     result = run(
         [
             "flatpak",
             "list",
-            "--user",
+            f"--{scope}",
             "--app",
             "--columns=application,ref,origin",
         ],
@@ -109,9 +123,28 @@ def list_installed(
         if len(fields) != 3 or APP_ID.fullmatch(fields[0]) is None:
             raise ValueError("Flatpak returned an invalid application record")
         applications.append(
-            {"application": fields[0], "ref": fields[1], "origin": fields[2]}
+            {
+                "application": fields[0],
+                "ref": fields[1],
+                "origin": fields[2],
+                "scope": scope,
+                "removable": scope == "user",
+            }
         )
     return applications
+
+
+def inspect(
+    application: str,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, object]:
+    application = validate_app(application)
+    installations = [
+        record
+        for record in list_installed(run, scope="all")
+        if record["application"] == application
+    ]
+    return {"application": application, "installations": installations}
 
 
 def main() -> int:
@@ -122,10 +155,13 @@ def main() -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     install_parser = commands.add_parser("install")
     install_parser.add_argument("application")
-    install_parser.add_argument("--remote", default="flathub")
+    install_parser.add_argument("--remote")
     remove_parser = commands.add_parser("remove")
     remove_parser.add_argument("application")
-    commands.add_parser("list")
+    list_parser = commands.add_parser("list")
+    list_parser.add_argument("--scope", choices=(*SCOPES, "all"), default="user")
+    inspect_parser = commands.add_parser("inspect")
+    inspect_parser.add_argument("application")
     args = parser.parse_args()
 
     try:
@@ -144,8 +180,10 @@ def main() -> int:
                 target=args.target,
                 user=args.user,
             )
+        elif args.command == "list":
+            print(json.dumps(list_installed(scope=args.scope), indent=2))
         else:
-            print(json.dumps(list_installed(), indent=2))
+            print(json.dumps(inspect(args.application), indent=2))
     except (OSError, subprocess.CalledProcessError, ValueError) as error:
         print(f"zen-flatpak: {error}", file=sys.stderr)
         return 1

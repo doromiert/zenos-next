@@ -162,6 +162,15 @@ assert finalConfig.systemd.user.services ? zenos-user-app-index;
 assert
   finalConfig.systemd.user.services.zenos-user-app-index.unitConfig.ConditionPathIsDirectory
   == "%h/.private/Apps";
+assert finalConfig.services.flatpak.enable;
+assert finalConfig.xdg.portal.enable;
+assert finalConfig.systemd.services ? zenos-flatpak-policy;
+assert finalConfig.systemd.user.services ? zenos-flatpak-policy;
+assert
+  finalConfig.systemd.user.services.zenos-flatpak-policy.unitConfig.ConditionUser == "!@system";
+assert finalConfig.systemd.user.services.zenos-flatpak-policy.serviceConfig.Restart == "on-failure";
+assert builtins.elem "$HOME/.private/Packages/flatpak/exports" finalConfig.environment.profiles;
+assert finalConfig.environment.sessionVariables.ZENOS_FLATPAK_REMOTE == "zenos-flathub";
 assert finalConfig.nixpkgs.config.allowUnfree;
 assert oobeConfig.nixpkgs.config.allowUnfree;
 assert builtins.elem "zenos-icons" finalPackageNames;
@@ -169,6 +178,8 @@ assert builtins.elem "destination-2-wallpapers" finalPackageNames;
 assert builtins.elem "zenos-icons" oobePackageNames;
 assert builtins.elem "zenos-nautilus-apps" finalPackageNames;
 assert builtins.elem "zenos-nautilus-apps" oobePackageNames;
+assert builtins.elem "zenos-app-index" finalPackageNames;
+assert builtins.elem "zenos-app-index" oobePackageNames;
 assert builtins.elem "nautilus-python" finalPackageNames;
 assert builtins.elem "nautilus-python" oobePackageNames;
 assert builtins.elem "gnome-console" finalPackageNames;

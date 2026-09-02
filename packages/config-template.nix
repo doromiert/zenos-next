@@ -155,8 +155,9 @@ let
                 zenpkgs.nixosModules.webapps
                 zenpkgs.nixosModules.desktops.gnome.tweaks.firefox-theming."module.nix"
                 disko.nixosModules.disko
-                (zenosSource + "/modules/gnome-profile.nix")
-                (zenosSource + "/modules/platform/refind.nix")
+                 (zenosSource + "/modules/gnome-profile.nix")
+                 (zenosSource + "/modules/app-platform.nix")
+                 (zenosSource + "/modules/platform/refind.nix")
                 (zenosSource + "/modules/zenfs")
                 (
                   { config, pkgs, ... }:

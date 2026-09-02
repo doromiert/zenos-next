@@ -29,6 +29,17 @@ let
       exec python3 ${./appimage.py} "$@"
     '';
   };
+  compatibility = writeShellApplication {
+    name = "zen-compat";
+    runtimeInputs = [
+      bubblewrap
+      python3
+    ];
+    text = ''
+      export PYTHONPATH=${./.}
+      exec python3 ${./compat.py} "$@"
+    '';
+  };
   flatpakApps = writeShellApplication {
     name = "zen-flatpak";
     runtimeInputs = [
@@ -46,11 +57,12 @@ symlinkJoin {
   paths = [
     appIndex
     appImage
+    compatibility
     flatpakApps
   ];
   meta = {
-    description = "Build ZenOS application views and manage per-user AppImages";
-    license = lib.licenses.napalm;
+    description = "Build ZenOS application views and manage application compatibility";
+    license = lib.licenses.napalm or lib.licenses.unfree;
     mainProgram = "zen-app-index";
     platforms = lib.platforms.linux;
   };

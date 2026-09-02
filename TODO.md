@@ -9,9 +9,11 @@
   - [x] Patch and live-verify Seahorse SSH storage under `.private/Config/ssh`.
   - [ ] Add continuous enforcement and per-app Bubblewrap namespaces so hardcoded applications cannot recreate paths in the real home.
 - [ ] Preconfigure Flatpak and build the Windows application compatibility system plus its configuration UI.
-  - User and system Flatpak policy, remotes, install/remove/details integration, and app-index refresh.
-  - Isolated Wine prefixes for desktop applications and UMU-Proton for games.
-  - Per-app runner, prefix, environment, and compatibility settings in the app details UI.
+  - [x] Enable Flatpak, reconcile user/system Flathub remotes, expose installation scope, and install the app-management tools.
+  - [x] Add schema-versioned per-token compatibility settings and a live-tested opt-in Bubblewrap synthetic-home executor.
+  - [ ] Add install/remove/details UI integration and app-index refresh hooks for external Flatpak transactions.
+  - [ ] Add isolated Wine prefixes for desktop applications and UMU-Proton for games.
+  - [ ] Add per-app runner, prefix, environment, and compatibility settings in the app details UI.
 - [ ] Add hardware detection, support, and optimization templates for testable Lenovo systems.
   - ThinkPad L13 Yoga Gen 1.
   - ThinkPad X13 Yoga Gen 2.
@@ -113,6 +115,7 @@
 - [ ] Build a proper app details window for manifest information, desktop-entry editing, compatibility settings, and app actions.
 - [ ] Add first-class Flatpak support to the app index, details UI, and install/remove flows.
   - [x] Add validated user-scoped `zen-flatpak` install/remove/list operations with automatic private-index refresh.
+  - [x] Enable Flatpak by default, reconcile Flathub at user and system scope, and report installation scope/removability.
   - [ ] Add details UI actions and explicit policy for system or declaratively managed Flatpaks.
 - [ ] Complete AppImage support in the app index, details UI, and install/remove flows.
   - [x] Validate, inspect, install, list, remove, and index type-2 AppImages without executing untrusted metadata.
