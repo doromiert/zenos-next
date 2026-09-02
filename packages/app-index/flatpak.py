@@ -36,7 +36,7 @@ def validate_remote(value: str) -> str:
 
 
 def refresh_index(home: Path, target: Path, user: str | None = None) -> None:
-    build_source_views(home, target, user)
+    build_source_views(home, target, user, scope="user")
 
 
 def install(

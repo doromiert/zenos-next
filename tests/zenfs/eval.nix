@@ -123,6 +123,8 @@ assert builtins.elem "/Live" cfg.zenfs.hierarchy.directories;
 assert builtins.elem "/mnt" cfg.zenfs.hierarchy.directories;
 assert cfg.zenfs.hierarchy.aliases."/Mount" == "/mnt";
 assert nixpkgs.lib.hasInfix "/Apps" cfg.systemd.services.zenos-app-index.serviceConfig.ExecStart;
+assert nixpkgs.lib.hasInfix "--scope system"
+  cfg.systemd.services.zenos-app-index.serviceConfig.ExecStart;
 assert
   cfg.systemd.services.zenfs-roaming-work-marker.unitConfig.RequiresMountsFor == [
     "/Mount/work"

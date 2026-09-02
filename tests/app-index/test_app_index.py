@@ -10,6 +10,7 @@ from app_index import (
     classify_source,
     desktop_entry,
     desktop_visible,
+    source_catalog,
 )
 from app_registry import app_token
 
@@ -99,6 +100,52 @@ class AppIndexTests(unittest.TestCase):
             ),
         )
 
+    def test_source_catalog_separates_system_and_user_installations(self) -> None:
+        home = Path("/Users/alice")
+        system = {
+            source.key: source.directories
+            for source in source_catalog(home, "alice", "system")
+        }
+        user = {
+            source.key: source.directories
+            for source in source_catalog(home, "alice", "user")
+        }
+
+        self.assertEqual((), system["manual"])
+        self.assertEqual((), system["nix-imperative"])
+        self.assertEqual(
+            (Path("/var/lib/flatpak/exports/share/applications"),),
+            system["flatpak"],
+        )
+        self.assertEqual(
+            (Path("/run/current-system/sw/share/applications"),),
+            system["nix-config"],
+        )
+        self.assertEqual(
+            (home / ".private/Packages/applications",), user["manual"]
+        )
+        self.assertEqual(
+            (home / ".private/Packages/flatpak/exports/share/applications",),
+            user["flatpak"],
+        )
+        self.assertEqual(
+            (
+                home / ".private/State/nix/profiles/profile/share/applications",
+                Path(
+                    "/nix/var/nix/profiles/per-user/alice/profile/share/applications"
+                ),
+            ),
+            user["nix-imperative"],
+        )
+        self.assertEqual(
+            (Path("/etc/profiles/per-user/alice/share/applications"),),
+            user["nix-config"],
+        )
+
+    def test_source_catalog_rejects_unknown_scope(self) -> None:
+        with self.assertRaisesRegex(ValueError, "invalid application scope"):
+            source_catalog(Path("/Users/alice"), "alice", "session")
+
     def test_builds_all_source_views_with_manual_override(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -166,6 +213,48 @@ class AppIndexTests(unittest.TestCase):
             self.assertEqual(
                 registry["applications"][0]["token"],
                 desktop_entry(target / "Manual Editor")["X-ZenOS-AppToken"],
+            )
+
+    def test_scoped_rebuild_removes_launchers_from_the_wrong_view(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "Users/alice"
+            target = root / "Apps"
+            user_apps = root / "user-applications"
+            system_apps = root / "system-applications"
+            user_apps.mkdir(parents=True)
+            system_apps.mkdir()
+            self.write_desktop(
+                user_apps,
+                "user.desktop",
+                "Type=Application\nName=User App\nExec=true\n",
+            )
+            self.write_desktop(
+                system_apps,
+                "system.desktop",
+                "Type=Application\nName=System App\nExec=true\n",
+            )
+            mixed = (
+                AppSource("manual", "Manually Installed", (user_apps,)),
+                AppSource("flatpak", "Flatpak", (system_apps,)),
+            )
+            user_only = (
+                AppSource("manual", "Manually Installed", (user_apps,)),
+                AppSource("flatpak", "Flatpak", ()),
+            )
+
+            build_source_views(home, target, "alice", mixed)
+            self.assertTrue((target / "System App").is_file())
+            build_source_views(home, target, "alice", user_only, scope="user")
+
+            self.assertTrue((target / "User App").is_file())
+            self.assertFalse((target / "System App").exists())
+            registry = json.loads(
+                (target / ".zenos-app-registry.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                ["user.desktop"],
+                [record["desktopId"] for record in registry["applications"]],
             )
 
     def test_records_owning_nix_package(self) -> None:

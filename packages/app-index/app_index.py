@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Populate /Apps with source-aware desktop application launchers."""
+"""Populate scoped ZenOS application views with validated launchers."""
 
 from __future__ import annotations
 
@@ -41,40 +41,64 @@ class AppSource:
     directories: tuple[Path, ...]
 
 
-def source_catalog(home: Path, user: str | None = None) -> tuple[AppSource, ...]:
+def source_catalog(
+    home: Path, user: str | None = None, scope: str = "all"
+) -> tuple[AppSource, ...]:
     """Return desktop-entry sources in XDG override order."""
+    if scope not in {"all", "system", "user"}:
+        raise ValueError(f"invalid application scope: {scope!r}")
     username = user or home.name
+    include_user = scope in {"all", "user"}
+    include_system = scope in {"all", "system"}
+    user_flatpak = (
+        (home / ".private/Packages/flatpak/exports/share/applications",)
+        if include_user
+        else ()
+    )
+    system_flatpak = (
+        (Path("/var/lib/flatpak/exports/share/applications"),)
+        if include_system
+        else ()
+    )
+    system_nix = (
+        (Path("/run/current-system/sw/share/applications"),)
+        if include_system
+        else ()
+    )
+    user_nix = (
+        (Path(f"/etc/profiles/per-user/{username}/share/applications"),)
+        if include_user
+        else ()
+    )
     return (
         AppSource(
             "manual",
             "Manually Installed",
-            (home / ".private/Packages/applications",),
+            (home / ".private/Packages/applications",) if include_user else (),
         ),
         AppSource(
             "flatpak",
             "Flatpak",
-            (
-                home / ".private/Packages/flatpak/exports/share/applications",
-                Path("/var/lib/flatpak/exports/share/applications"),
-            ),
+            user_flatpak + system_flatpak,
         ),
         AppSource(
             "nix-imperative",
             "Nix (Imperative)",
             (
-                home / ".private/State/nix/profiles/profile/share/applications",
-                Path(
-                    f"/nix/var/nix/profiles/per-user/{username}/profile/share/applications"
-                ),
+                (
+                    home / ".private/State/nix/profiles/profile/share/applications",
+                    Path(
+                        f"/nix/var/nix/profiles/per-user/{username}/profile/share/applications"
+                    ),
+                )
+                if include_user
+                else ()
             ),
         ),
         AppSource(
             "nix-config",
             "Nix (Config)",
-            (
-                Path("/run/current-system/sw/share/applications"),
-                Path(f"/etc/profiles/per-user/{username}/share/applications"),
-            ),
+            system_nix + user_nix,
         ),
     )
 
@@ -523,9 +547,11 @@ def build_source_views(
     target: Path,
     user: str | None = None,
     sources: tuple[AppSource, ...] | None = None,
+    *,
+    scope: str = "all",
 ) -> dict[str, list[str]]:
     target = _real_directory(target, create=True)
-    sources = sources if sources is not None else source_catalog(home, user)
+    sources = sources if sources is not None else source_catalog(home, user, scope)
     entries_by_source = {source.key: _source_entries(source) for source in sources}
     all_entries: list[tuple[Path, AppSource]] = []
     seen_ids: set[str] = set()
@@ -579,13 +605,14 @@ def main() -> int:
     parser.add_argument("--home", type=Path, default=Path.home())
     parser.add_argument("--target", type=Path, default=Path("/Apps"))
     parser.add_argument("--user")
+    parser.add_argument("--scope", choices=("system", "user"), default="system")
     args = parser.parse_args()
     if args.source is not None:
         if args.legacy_target is None:
             parser.error("the legacy source argument requires a target argument")
         build_index(args.source, args.legacy_target)
     else:
-        build_source_views(args.home, args.target, args.user)
+        build_source_views(args.home, args.target, args.user, scope=args.scope)
     return 0
 
 

@@ -20,7 +20,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable
+from typing import Callable, Mapping
 
 from app_index import build_source_views
 
@@ -924,12 +924,17 @@ def list_installed(home: Path) -> list[dict[str, str]]:
 
 def refresh_index(home: Path, target: Path) -> None:
     try:
-        build_source_views(home, target, os.environ.get("USER"))
+        build_source_views(home, target, os.environ.get("USER"), scope="user")
     except PermissionError:
         print(
             f"warning: could not refresh {target}; the desktop registration was updated",
             file=sys.stderr,
         )
+
+
+def default_apps_dir(home: Path, environ: Mapping[str, str] = os.environ) -> Path:
+    configured = environ.get("ZENOS_APPS_DIR")
+    return Path(configured) if configured else home / ".private/Apps"
 
 
 def main() -> int:
@@ -940,7 +945,7 @@ def main() -> int:
     parser.add_argument(
         "--apps-dir",
         type=Path,
-        default=Path(os.environ.get("ZENOS_APPS_DIR", "/Apps")),
+        default=None,
         help=argparse.SUPPRESS,
     )
     commands = parser.add_subparsers(dest="command", required=True)
@@ -952,15 +957,16 @@ def main() -> int:
     remove_parser.add_argument("id")
     commands.add_parser("list", help="list managed AppImages")
     args = parser.parse_args()
+    apps_dir = args.apps_dir or default_apps_dir(args.home)
 
     try:
         if args.command == "install":
             identifier = install(args.file, args.home)
-            refresh_index(args.home, args.apps_dir)
+            refresh_index(args.home, apps_dir)
             print(identifier)
         elif args.command == "remove":
             remove(args.id, args.home)
-            refresh_index(args.home, args.apps_dir)
+            refresh_index(args.home, apps_dir)
         else:
             for item in list_installed(args.home):
                 print(f"{item['id']}\t{item['name']}")

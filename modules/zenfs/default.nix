@@ -30,7 +30,7 @@ let
     runtimeInputs = [ pkgs.coreutils ];
     text = ''
       home="$(realpath -- "$HOME")"
-      ${lib.getExe appIndex} --home "$home" --target "$home/.private/Apps" --user "$USER"
+      ${lib.getExe appIndex} --home "$home" --target "$home/.private/Apps" --user "$USER" --scope user
       ${nautilusApps}/bin/zen-app-icons /Apps
       ${nautilusApps}/bin/zen-app-icons "$home/.private/Apps"
     '';
@@ -850,7 +850,7 @@ in
         restartTriggers = [ config.system.path ];
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${lib.getExe appIndex} --home /var/empty --target /Apps";
+          ExecStart = "${lib.getExe appIndex} --home /var/empty --target /Apps --scope system";
         };
       };
     };

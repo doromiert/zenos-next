@@ -69,7 +69,8 @@ zen-compat run TOKEN -- COMMAND [ARGUMENT ...]
   invoke it through `zenos-rebuild`; users should not compile `host.nix`
   manually.
 - `zen-app-index` creates the system and per-user Apps views and token
-  registries.
+  registries. `/Apps` contains system installations; `.private/Apps` contains
+  only installations owned by that user.
 - `zen-app-launch` validates managed app tokens and preserves ordinary desktop
   file launching outside Apps views.
 - `zen-app-icons` seeds Nautilus icon metadata before Apps directories are

@@ -158,6 +158,8 @@ assert finalConfig.zenfs.users.contract.home == "/Users/contract";
 assert oobeConfig.zenfs.users.zenos.home == "/run/zenos-oobe";
 assert pkgs.lib.hasInfix "/Apps"
   finalConfig.systemd.services.zenos-app-index.serviceConfig.ExecStart;
+assert pkgs.lib.hasInfix "--scope system"
+  finalConfig.systemd.services.zenos-app-index.serviceConfig.ExecStart;
 assert finalConfig.systemd.user.services ? zenos-user-app-index;
 assert
   finalConfig.systemd.user.services.zenos-user-app-index.unitConfig.ConditionPathIsDirectory

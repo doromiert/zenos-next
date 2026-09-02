@@ -8,6 +8,14 @@ import flatpak
 
 
 class FlatpakBackendTests(unittest.TestCase):
+    def test_refresh_builds_only_the_user_view(self) -> None:
+        home = Path("/Users/alice")
+        target = home / ".private/Apps"
+        with mock.patch.object(flatpak, "build_source_views") as build:
+            flatpak.refresh_index(home, target, "alice")
+
+        build.assert_called_once_with(home, target, "alice", scope="user")
+
     def test_install_is_user_scoped_and_refreshes_index(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory) / "home"

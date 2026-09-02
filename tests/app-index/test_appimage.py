@@ -86,6 +86,18 @@ class FakeUnsquashfs:
 
 
 class AppImageTests(unittest.TestCase):
+    def test_defaults_refresh_to_private_apps(self) -> None:
+        home = Path("/Users/alice")
+        self.assertEqual(
+            home / ".private/Apps", appimage.default_apps_dir(home, {})
+        )
+        self.assertEqual(
+            Path("/tmp/custom-apps"),
+            appimage.default_apps_dir(
+                home, {"ZENOS_APPS_DIR": "/tmp/custom-apps"}
+            ),
+        )
+
     def write_type2(self, path: Path, offsets: tuple[int, ...] = (64,)) -> bytes:
         payload = bytearray(b"\x7fELF\x00\x00\x00\x00AI\x02")
         payload.extend(b"\x00" * (256 - len(payload)))
