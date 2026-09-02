@@ -255,7 +255,7 @@ class AppImageTests(unittest.TestCase):
             identifier = install(image, home, runner=runner)
 
             self.assertEqual("editor", identifier)
-            installed = home / ".local/lib/zenos/appimages/editor/editor.AppImage"
+            installed = home / ".private/Packages/zenos/appimages/editor/editor.AppImage"
             self.assertEqual(original, installed.read_bytes())
             manifest = json.loads(
                 (installed.parent / "manifest.json").read_text(encoding="utf-8")
@@ -263,7 +263,7 @@ class AppImageTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(original).hexdigest(), manifest["sha256"])
             registration = (
                 home
-                / ".local/share/applications/com.negzero.zenos.appimage.editor.desktop"
+                / ".private/Packages/applications/com.negzero.zenos.appimage.editor.desktop"
             )
             parser = configparser.ConfigParser(interpolation=None)
             parser.optionxform = str
@@ -315,7 +315,7 @@ class AppImageTests(unittest.TestCase):
 
             registration = (
                 home
-                / ".local/share/applications/com.negzero.zenos.appimage.editor.desktop"
+                / ".private/Packages/applications/com.negzero.zenos.appimage.editor.desktop"
             )
             parser = configparser.ConfigParser(interpolation=None)
             parser.optionxform = str

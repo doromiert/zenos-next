@@ -744,10 +744,10 @@ def extract_metadata(
 
 
 def appimage_paths(home: Path, identifier: str) -> tuple[Path, Path, Path]:
-    app_dir = home / ".local/lib/zenos/appimages" / identifier
+    app_dir = home / ".private/Packages/zenos/appimages" / identifier
     registration = (
         home
-        / ".local/share/applications"
+        / ".private/Packages/applications"
         / f"com.negzero.zenos.appimage.{identifier}.desktop"
     )
     return app_dir, app_dir / f"{identifier}.AppImage", registration
@@ -908,7 +908,7 @@ def remove(identifier: str, home: Path) -> None:
 
 
 def list_installed(home: Path) -> list[dict[str, str]]:
-    root = home / ".local/lib/zenos/appimages"
+    root = home / ".private/Packages/zenos/appimages"
     installed: list[dict[str, str]] = []
     if not root.is_dir():
         return installed

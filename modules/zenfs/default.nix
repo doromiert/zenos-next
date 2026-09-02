@@ -118,27 +118,31 @@ let
       inherit (mount) group;
     }) privateMounts;
 
-  userCompatibilityLinks = concatLists (
-    mapAttrsToList (
-      name: userCfg:
-      let
-        home = getUserHome name userCfg;
-        linkRule = path: target: {
-          inherit path target;
-          user = name;
-          inherit (userCfg) group;
-        };
-      in
-      [
-        (linkRule "${home}/.config" "${home}/.private/Config")
-        (linkRule "${home}/.cache" "${home}/.private/Live")
-        (linkRule "${home}/.local" "${home}/.private/Local")
-        (linkRule "${home}/.private/Local/lib" "${home}/.private/Packages/lib")
-        (linkRule "${home}/.private/Local/share" "${home}/.private/Packages")
-        (linkRule "${home}/.private/Local/state" "${home}/.private/State")
-      ]
-    ) cfg.users
-  );
+  userCompatibilityLinks =
+    if cfg.strict then
+      [ ]
+    else
+      concatLists (
+        mapAttrsToList (
+          name: userCfg:
+          let
+            home = getUserHome name userCfg;
+            linkRule = path: target: {
+              inherit path target;
+              user = name;
+              inherit (userCfg) group;
+            };
+          in
+          [
+            (linkRule "${home}/.config" "${home}/.private/Config")
+            (linkRule "${home}/.cache" "${home}/.private/Live")
+            (linkRule "${home}/.local" "${home}/.private/Local")
+            (linkRule "${home}/.private/Local/lib" "${home}/.private/Packages/lib")
+            (linkRule "${home}/.private/Local/share" "${home}/.private/Packages")
+            (linkRule "${home}/.private/Local/state" "${home}/.private/State")
+          ]
+        ) cfg.users
+      );
 
   userDirsConfig = pkgs.writeText "zenfs-user-dirs.dirs" ''
     XDG_DESKTOP_DIR="$HOME/Desktop"
@@ -159,11 +163,15 @@ let
     ];
     text = ''
       private="$HOME/.private"
+      strict=${if cfg.strict then "1" else "0"}
 
       migrate_directory() {
         source="$1"
         target="$2"
         if [ -L "$source" ]; then
+          if [ "$strict" = 1 ] && [ "$(readlink -- "$source")" = "$target" ]; then
+            rm -- "$source"
+          fi
           return
         fi
         install -d -m 0700 "$target"
@@ -174,16 +182,37 @@ let
           echo "ZenFS: refusing to replace non-directory $source" >&2
           return 1
         fi
-        ln -s "$target" "$source"
+        if [ "$strict" != 1 ]; then
+          ln -s "$target" "$source"
+        fi
+      }
+
+      migrate_file() {
+        source="$1"
+        target="$2"
+        if [ ! -e "$source" ] && [ ! -L "$source" ]; then
+          return
+        fi
+        install -d -m 0700 "$(dirname "$target")"
+        if [ -e "$target" ] || [ -L "$target" ]; then
+          mv -- "$source" "$target.legacy-$(date +%s)"
+        else
+          mv -- "$source" "$target"
+        fi
       }
 
       install -d -m 0700 \
         "$private/Config" \
+        "$private/Config/gnupg" \
+        "$private/Config/ssh" \
+        "$private/Legacy" \
         "$private/Live" \
         "$private/Local" \
         "$private/Packages" \
         "$private/Packages/lib" \
-        "$private/State"
+        "$private/State" \
+        "$private/State/nix/profiles" \
+        "$private/State/shell"
 
       migrate_directory "$HOME/.config" "$private/Config"
       migrate_directory "$HOME/.cache" "$private/Live"
@@ -199,6 +228,13 @@ let
         migrate_directory "$HOME/.local/state" "$private/State"
       fi
       migrate_directory "$HOME/.local" "$private/Local"
+      migrate_directory "$HOME/.gnupg" "$private/Config/gnupg"
+      migrate_directory "$HOME/.ssh" "$private/Config/ssh"
+      migrate_directory "$HOME/.mozilla" "$private/Config/mozilla"
+      migrate_file "$HOME/.bash_history" "$private/State/shell/bash_history"
+      migrate_file "$HOME/.zsh_history" "$private/State/shell/zsh_history"
+      migrate_file "$HOME/.python_history" "$private/State/python/history"
+      migrate_file "$HOME/.lesshst" "$private/State/less/history"
 
       ln -sfn "$private/Packages/lib" "$private/Local/lib"
       ln -sfn "$private/Packages" "$private/Local/share"
@@ -208,6 +244,20 @@ let
       export XDG_CONFIG_HOME="$private/Config"
       export XDG_DATA_HOME="$private/Packages"
       export XDG_STATE_HOME="$private/State"
+
+      if [ "$strict" = 1 ]; then
+        for source in "$HOME"/.[!.]* "$HOME"/..?*; do
+          if { [ ! -e "$source" ] && [ ! -L "$source" ]; } || [ "$(basename "$source")" = .private ]; then
+            continue
+          fi
+          name="$(basename "$source")"
+          target="$private/Legacy/''${name#.}"
+          if [ -e "$target" ] || [ -L "$target" ]; then
+            target="$target.legacy-$(date +%s)"
+          fi
+          mv -- "$source" "$target"
+        done
+      fi
 
       install -m 0600 ${userDirsConfig} "$XDG_CONFIG_HOME/user-dirs.dirs"
       xdg-user-dirs-update
@@ -414,6 +464,12 @@ in
   options.zenfs = {
     enable = mkEnableOption "the ZenFS hierarchy and roaming storage module";
 
+    strict = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Keep all managed user state under .private without home-directory compatibility dotfiles.";
+    };
+
     hierarchy.aliases = mkOption {
       type = types.attrsOf (types.nullOr types.str);
       default = {
@@ -507,12 +563,18 @@ in
                   ".private"
                   ".private/Apps"
                   ".private/Config"
+                  ".private/Config/gnupg"
+                  ".private/Config/ssh"
+                  ".private/Legacy"
                   ".private/Live"
                   ".private/Local"
                   ".private/Mount"
                   ".private/Packages"
                   ".private/Packages/lib"
                   ".private/State"
+                  ".private/State/nix"
+                  ".private/State/nix/profiles"
+                  ".private/State/shell"
                 ];
                 description = "Private directories relative to the user's home.";
               };
@@ -724,6 +786,17 @@ in
           case "''${USER-}:$HOME" in
           ${managedIdentityPatterns})
             printf '%s\n' \
+              "CARGO_HOME=$HOME/.private/Packages/cargo" \
+              "GIT_CONFIG_GLOBAL=$HOME/.private/Config/git/config" \
+              "GNUPGHOME=$HOME/.private/Config/gnupg" \
+              "GOPATH=$HOME/.private/Packages/go" \
+              "HISTFILE=$HOME/.private/State/shell/history" \
+              "LESSHISTFILE=$HOME/.private/State/less/history" \
+              "NIX_PROFILE=$HOME/.private/State/nix/profiles/profile" \
+              "NPM_CONFIG_USERCONFIG=$HOME/.private/Config/npm/npmrc" \
+              "PASSWORD_STORE_DIR=$HOME/.private/Packages/password-store" \
+              "PYTHON_HISTORY=$HOME/.private/State/python/history" \
+              "RUSTUP_HOME=$HOME/.private/Packages/rustup" \
               "XDG_CACHE_HOME=$HOME/.private/Live" \
               "XDG_CONFIG_HOME=$HOME/.private/Config" \
               "XDG_DATA_HOME=$HOME/.private/Packages" \
@@ -739,11 +812,31 @@ in
           export XDG_CONFIG_HOME="$HOME/.private/Config"
           export XDG_DATA_HOME="$HOME/.private/Packages"
           export XDG_STATE_HOME="$HOME/.private/State"
+          export CARGO_HOME="$XDG_DATA_HOME/cargo"
+          export GIT_CONFIG_GLOBAL="$XDG_CONFIG_HOME/git/config"
+          export GNUPGHOME="$XDG_CONFIG_HOME/gnupg"
+          export GOPATH="$XDG_DATA_HOME/go"
+          export HISTFILE="$XDG_STATE_HOME/shell/history"
+          export LESSHISTFILE="$XDG_STATE_HOME/less/history"
+          export NIX_PROFILE="$XDG_STATE_HOME/nix/profiles/profile"
+          export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
+          export PASSWORD_STORE_DIR="$XDG_DATA_HOME/password-store"
+          export PYTHON_HISTORY="$XDG_STATE_HOME/python/history"
+          export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
           ;;
         esac
       '';
       systemPackages = [ zenfsctl ];
     };
+
+    programs.ssh.extraConfig = lib.mkIf (hasManagedUsers && cfg.strict) ''
+      Include %d/.private/Config/ssh/config
+      Host *
+        UserKnownHostsFile %d/.private/Config/ssh/known_hosts
+        IdentityFile %d/.private/Config/ssh/id_ed25519
+        IdentityFile %d/.private/Config/ssh/id_ecdsa
+        IdentityFile %d/.private/Config/ssh/id_rsa
+    '';
 
     fileSystems = driveFileSystems // privateFileSystems;
     systemd.services = markerServices // {

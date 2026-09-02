@@ -66,19 +66,21 @@ class AppIndexTests(unittest.TestCase):
         self.assertEqual(
             "manual",
             classify_source(
-                home / ".local/share/applications/editor.desktop", home, "alice"
+                home / ".private/Packages/applications/editor.desktop", home, "alice"
             ),
         )
         self.assertEqual(
             "nix-imperative",
             classify_source(
-                home / ".nix-profile/share/applications/editor.desktop", home, "alice"
+                home / ".private/State/nix/profiles/profile/share/applications/editor.desktop",
+                home,
+                "alice",
             ),
         )
         self.assertEqual(
             "flatpak",
             classify_source(
-                home / ".local/share/flatpak/exports/share/applications/editor.desktop",
+                home / ".private/Packages/flatpak/exports/share/applications/editor.desktop",
                 home,
                 "alice",
             ),
@@ -102,9 +104,9 @@ class AppIndexTests(unittest.TestCase):
             root = Path(directory)
             home = root / "home/alice"
             target = root / "Apps"
-            manual = home / ".local/share/applications"
-            imperative = home / ".nix-profile/share/applications"
-            flatpak = home / ".local/share/flatpak/exports/share/applications"
+            manual = home / ".private/Packages/applications"
+            imperative = home / ".private/State/nix/profiles/profile/share/applications"
+            flatpak = home / ".private/Packages/flatpak/exports/share/applications"
             for source in (manual, imperative, flatpak):
                 source.mkdir(parents=True)
             self.write_desktop(
@@ -258,7 +260,7 @@ class AppIndexTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             home = root / "home/alice"
-            manual = home / ".local/share/applications"
+            manual = home / ".private/Packages/applications"
             manual.mkdir(parents=True)
             self.write_desktop(
                 manual,

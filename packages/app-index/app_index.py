@@ -46,13 +46,15 @@ def source_catalog(home: Path, user: str | None = None) -> tuple[AppSource, ...]
     username = user or home.name
     return (
         AppSource(
-            "manual", "Manually Installed", (home / ".local/share/applications",)
+            "manual",
+            "Manually Installed",
+            (home / ".private/Packages/applications",),
         ),
         AppSource(
             "flatpak",
             "Flatpak",
             (
-                home / ".local/share/flatpak/exports/share/applications",
+                home / ".private/Packages/flatpak/exports/share/applications",
                 Path("/var/lib/flatpak/exports/share/applications"),
             ),
         ),
@@ -60,8 +62,7 @@ def source_catalog(home: Path, user: str | None = None) -> tuple[AppSource, ...]
             "nix-imperative",
             "Nix (Imperative)",
             (
-                home / ".nix-profile/share/applications",
-                home / ".local/state/nix/profiles/profile/share/applications",
+                home / ".private/State/nix/profiles/profile/share/applications",
                 Path(
                     f"/nix/var/nix/profiles/per-user/{username}/profile/share/applications"
                 ),
@@ -300,10 +301,10 @@ def package_root(path: Path, source_key: str) -> Path | None:
         match = APPIMAGE_REGISTRATION.fullmatch(path.name)
         if match:
             try:
-                home = path.parents[3]
+                home = path.parents[2]
             except IndexError:
                 return None
-            app_dir = home / ".local/lib/zenos/appimages" / match.group(1)
+            app_dir = home / ".private/Packages/zenos/appimages" / match.group(1)
             try:
                 details = os.lstat(app_dir)
             except OSError:

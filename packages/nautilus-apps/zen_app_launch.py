@@ -27,14 +27,13 @@ SOURCE_LABELS = {
 def source_roots(home: Path, user: str | None = None) -> dict[str, tuple[Path, ...]]:
     username = user or home.name
     return {
-        "manual": (home / ".local/share/applications",),
+        "manual": (home / ".private/Packages/applications",),
         "flatpak": (
-            home / ".local/share/flatpak/exports/share/applications",
+            home / ".private/Packages/flatpak/exports/share/applications",
             Path("/var/lib/flatpak/exports/share/applications"),
         ),
         "nix-imperative": (
-            home / ".nix-profile/share/applications",
-            home / ".local/state/nix/profiles/profile/share/applications",
+            home / ".private/State/nix/profiles/profile/share/applications",
             Path(
                 f"/nix/var/nix/profiles/per-user/{username}/profile/share/applications"
             ),
