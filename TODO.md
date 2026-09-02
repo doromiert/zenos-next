@@ -14,7 +14,7 @@
   - ThinkPad X13 Yoga Gen 2.
   - Detect exact model identifiers and expose applied template decisions through ZCFG diagnostics.
 - [ ] Add proper GNOME extension configuration modules with 1:1 feature parity with the current imperative dconf profile, but organize options around user workflows rather than mirroring raw dconf keys.
-- [ ] Make `/Config/ZenOS` the canonical default target used and reported by `zenos-rebuild`, never `/etc/ZenOS`, and add `tmux` as an explicit runtime dependency.
+- [x] Make `/Config/ZenOS` the canonical default target used and reported by `zenos-rebuild`, never `/etc/ZenOS`, and add `tmux` as an explicit runtime dependency.
 - [ ] Build a properly fleshed-out GNOME ZMDL covering desktop packages, defaults, extensions, shortcuts, branding, theming, sessions, and ergonomic typed configuration.
 
 ## Resume State
