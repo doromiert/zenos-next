@@ -227,6 +227,8 @@ let
                     environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
                     xdg.mime.defaultApplications."application/x-desktop" =
                       "com.negzero.zenos.AppLauncher.desktop";
+                    xdg.mime.defaultApplications."application/x-zenos-app" =
+                      "com.negzero.zenos.AppLauncher.desktop";
                     systemd.user.services.zenos-oobe.environment.ZENOS_SETUP_DRY_RUN =
                       lib.mkIf oobeEnabled "0";
                     systemd.user.services.zenos-oobe.environment.ZENOS_WALLPAPER_FILE =

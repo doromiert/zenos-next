@@ -176,6 +176,9 @@ assert builtins.elem "gnome-console" oobePackageNames;
 assert
   finalConfig.xdg.mime.defaultApplications."application/x-desktop"
   == "com.negzero.zenos.AppLauncher.desktop";
+assert
+  finalConfig.xdg.mime.defaultApplications."application/x-zenos-app"
+  == "com.negzero.zenos.AppLauncher.desktop";
 assert builtins.elem "zenos-setup" oobePackageNames;
 assert builtins.elem "gnome-shell-extension-zenos-oobe-mode" oobePackageNames;
 assert builtins.elem "zen-dsl" oobePackageNames;

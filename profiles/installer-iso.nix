@@ -540,6 +540,11 @@ in
     };
   };
 
+  xdg.mime.defaultApplications = {
+    "application/x-desktop" = "com.negzero.zenos.AppLauncher.desktop";
+    "application/x-zenos-app" = "com.negzero.zenos.AppLauncher.desktop";
+  };
+
   programs.dconf.profiles.user.databases = [
     {
       settings = {

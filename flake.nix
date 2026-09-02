@@ -248,7 +248,9 @@
                 pkgs.python3
                 pkgs.python3Packages.pygobject3
                 pkgs.gobject-introspection
+                pkgs.glib
                 pkgs.gtk4
+                pkgs.shared-mime-info
                 pkgs.zenos.apps.system.nautilus
                 pkgs.zenos.apps.system.nautilus-python
               ];
@@ -257,6 +259,29 @@
               python -m py_compile ${./packages/nautilus-apps/zenos_apps.py}
               python -m py_compile ${./packages/nautilus-apps/zen_app_launch.py}
               python -m py_compile ${./packages/nautilus-apps/zen_app_icons.py}
+              mkdir -p "$TMPDIR/share/mime/packages"
+              cp ${self.packages.${system}.nautilus-apps}/share/mime/packages/zenos-managed-desktop.xml \
+                "$TMPDIR/share/mime/packages/"
+              XDG_DATA_HOME="$TMPDIR/share" update-mime-database "$TMPDIR/share/mime"
+              cat > "$TMPDIR/managed-app" <<'EOF'
+              [Desktop Entry]
+              X-ZenOS-Managed=true
+              Type=Application
+              Name=Managed
+              Exec=true
+              EOF
+              cat > "$TMPDIR/ordinary-file" <<'EOF'
+              [Desktop Entry]
+              Type=Application
+              Name=Ordinary
+              Exec=true
+              EOF
+              XDG_DATA_HOME="$TMPDIR/share" XDG_DATA_DIRS=${pkgs.shared-mime-info}/share \
+                gio info -a standard::content-type "$TMPDIR/managed-app" \
+                | grep -q 'application/x-zenos-app'
+              XDG_DATA_HOME="$TMPDIR/share" XDG_DATA_DIRS=${pkgs.shared-mime-info}/share \
+                gio info -a standard::content-type "$TMPDIR/ordinary-file" \
+                | grep -q 'text/plain'
               export GI_TYPELIB_PATH=${pkgs.zenos.apps.system.nautilus}/lib/girepository-1.0:''${GI_TYPELIB_PATH:-}
               python - <<'PY'
               import gi
