@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
+import tempfile
 from typing import Sequence, TextIO
 
 from .diagnostics import render_human, render_json
@@ -79,16 +81,27 @@ def main(
         if arguments.output == "-":
             stdout.write(output)
         else:
-            _write_output(Path(arguments.output), output)
+            write_output_atomic(Path(arguments.output), output)
         return 0
     except ZcfgError as error:
         _write_diagnostic(error.diagnostic, arguments.diagnostic_format, loader, stderr)
         return 1
 
 
-def _write_output(path: Path, output: str) -> None:
+def write_output_atomic(path: Path, output: str) -> None:
+    temporary: Path | None = None
     try:
-        path.write_text(output, encoding="utf-8")
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{path.name}.",
+            dir=path.parent,
+            text=True,
+        )
+        temporary = Path(temporary_name)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(output)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
     except OSError as error:
         raise ZcfgError(
             Diagnostic(
@@ -98,6 +111,12 @@ def _write_output(path: Path, output: str) -> None:
                 notes=(str(error),),
             )
         ) from error
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def _write_diagnostic(

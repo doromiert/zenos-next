@@ -1,0 +1,33 @@
+_import rust: $type.set [ $type.string ] = "shared/rust-build.zpkg";
+
+_meta = {
+  brief = "A cat(1) clone with wings";
+  version = "0.24.0";
+  zenosVersion = 1.0.0Nb;
+  maintainers = [ $m.doromiert ];
+  license = $l.mit;
+  deps = {
+    global = [ $pkgs.zenos.zlib $pkgs.zenos.libgit2 ];
+    build ++ [ $pkgs.zenos.pkg-config $pkgs.zenos.rustc $pkgs.zenos.cargo ];
+    run -- [ $pkgs.zenos.libgit2 ];
+    run ++ [ $pkgs.zenos.openssl ];
+    export = [ $pkgs.zenos.bat ];
+  };
+};
+
+_src = $src.github {
+  owner = "sharkdp";
+  repo = "bat";
+  rev = "v0.24.0";
+  hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+};
+
+_meta.buildInterfaces = [ $v.rust ];
+
+_build = {
+  type = $type.cargo;
+  cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  postConfigure = ''
+    echo "zlib at: ${$deps.zlib}"
+  '';
+};

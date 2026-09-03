@@ -189,7 +189,11 @@
         };
         zen-dsl = {
           type = "app";
-          program = lib.getExe self.packages.${system}.zen-dsl;
+          program = "${self.packages.${system}.zen-dsl}/bin/zen-dsl";
+        };
+        zcfg = {
+          type = "app";
+          program = "${self.packages.${system}.zen-dsl}/bin/zcfg";
         };
         default = self.apps.${system}.vm;
       };
@@ -206,6 +210,24 @@
         vm-system = zenosOobeVm.config.system.build.toplevel;
         installer-iso-system = zenosInstallerIso.config.system.build.toplevel;
         zen-dsl = self.packages.${system}.zen-dsl;
+        dsl-parser-unit =
+          pkgs.runCommand "zenos-dsl-parser-unit-tests"
+            {
+              nativeBuildInputs = [
+                pkgs.nix
+                pkgs.python3
+              ];
+            }
+            ''
+              export PYTHONDONTWRITEBYTECODE=1
+              export PYTHONPATH=${./tools/zen-dsl}
+              python -m py_compile \
+                ${./tools/zen-dsl/zenlang/compiler.py} \
+                ${./tools/zen-dsl/zenlang/emitter.py} \
+                ${./tools/zen-dsl/tests/zenlang/test_compiler.py}
+              python -m unittest discover -s ${./tools/zen-dsl/tests/zenlang} -p 'test_*.py' -v
+              touch "$out"
+            '';
         zenfsctl = self.packages.${system}.zenfsctl;
         zenos-ops = self.packages.${system}.zenos-ops;
         platform =

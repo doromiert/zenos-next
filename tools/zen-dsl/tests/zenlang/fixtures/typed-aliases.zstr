@@ -1,0 +1,27 @@
+(alias legacy.network.hostName) = {
+  target = "nixos";
+  path = "networking.hostName";
+  type = $type.string;
+};
+
+(alias legacy.services.ssh.enable) = {
+  target = "nixos";
+  path = "services.openssh.enable";
+  type = $type.bool;
+};
+
+(alias legacy.services.ssh.port) = {
+  target = "nixos";
+  path = "services.openssh.ports";
+  type = $type.int;
+  write = $value: [ $value ];
+  read = $value: $lib.first ($value);
+};
+
+(zmdl ssh) = {
+  (alias implementation.enable) = {
+    target = "nixos";
+    path = "services.openssh.enable";
+    type = $type.bool;
+  };
+};

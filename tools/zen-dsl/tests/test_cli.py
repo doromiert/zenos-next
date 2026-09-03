@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from zcfg.cli import main
 
@@ -55,6 +56,25 @@ class CliTests(unittest.TestCase):
             compiled = output.read_text(encoding="utf-8")
             self.assertTrue(compiled.startswith("{ pkgs }:\n"))
             self.assertIn("zenos = {", compiled)
+
+    def test_compile_output_replacement_is_atomic(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "system.zcfg"
+            output = root / "system.nix"
+            source.write_text("enabled = true;", encoding="utf-8")
+            output.write_text("previous\n", encoding="utf-8")
+
+            with patch("zcfg.cli.os.replace", side_effect=OSError("replace failed")):
+                status = main(
+                    ["compile", str(source), "--output", str(output)],
+                    StringIO(),
+                    StringIO(),
+                )
+
+            self.assertEqual(1, status)
+            self.assertEqual("previous\n", output.read_text(encoding="utf-8"))
+            self.assertEqual([], list(root.glob(".system.nix.*")))
 
     def test_human_and_json_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

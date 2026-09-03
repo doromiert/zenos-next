@@ -1,0 +1,24 @@
+legacy = {
+  _meta = {
+    type = (alias nixpkgs);
+    brief = "Raw NixOS options merged at the root level";
+  };
+};
+
+system = {
+  _meta.type = (zmdl system);
+  packages._meta.type = (packages);
+  programs._meta.type = (programs);
+};
+
+desktop = {
+  _meta.type = (zmdl gnome);
+};
+
+users = {
+  (freeform user) = {
+    _meta.type = (zmdl userModules);
+    legacy._meta.type = (alias nixpkgs.users.users.($f.user));
+    home-manager._meta.type = (alias nixpkgs.home-manager.users.($f.user));
+  };
+};

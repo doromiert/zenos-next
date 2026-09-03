@@ -87,3 +87,75 @@ Run the test suite with:
 ```sh
 python3 -m unittest discover -s tests -v
 ```
+
+## Shared language front end
+
+`zenlang` is the span-aware parser and compiler front end for `.zcfg`, `.zmdl`,
+`.zpkg`, and `.zstr`. The public API includes:
+
+```python
+from zenlang import (
+    ast_to_dict,
+    check_tree,
+    compile_document,
+    compile_tree,
+    parse,
+    parse_file,
+    tokenize,
+    validate,
+)
+```
+
+The source filename determines the language kind. `parse` and `parse_file`
+perform syntax and file-kind validation by default and raise `ZenLangError`
+with a stable `ZENxxx` diagnostic. AST dataclasses are frozen and contain
+source spans. Serialized documents identify grammar and IR version `1.0.0Na`.
+
+`parse_file` recursively validates the import graph. Imports are local relative
+paths, must exist, and must have the same extension as their importer. By
+default they are confined to the entry file's parent directory after resolving
+symlinks. Callers with a wider source tree can pass `import_root=...`
+explicitly; the CLI exposes the same boundary as `--import-root`. Cycles and excessive import depth are rejected with import traces;
+bare imported documents are merged in source order before local declarations.
+Bound imports remain isolated typed AST values and never become Nix `import`
+expressions. Legacy `import ./file.zcfg;` remains accepted with a deprecation
+warning; new sources use `_import`.
+
+Executable bare names must be declared lexical bindings. Evaluator and backend
+roots are reserved, and package names are available bare only inside
+`with $pkgs;`. Boolean guards use `_let` annotations and ZMDL option metadata;
+an unknown `$cfg` selection must use a boolean default such as `or false` as an
+explicit deferred-type marker. Calls are not valid guards. DSL path literals
+remain tagged path descriptors rather than being coerced to strings.
+
+```sh
+python3 -m zenlang check module.zmdl
+python3 -m zenlang ast package.zpkg
+python3 -m zenlang compile system.zcfg -o system.nix
+python3 -m zenlang compile module.zmdl --target system -o module.nix
+python3 -m zenlang compile package.zpkg --mode interface -o package.nix
+python3 -m zenlang check-tree --root sources
+python3 -m zenlang compile-tree --root sources --output bundle.json
+```
+
+The installed `zen-dsl` executable provides the same commands and uses the
+shared parser and compiler for all four formats. ZMDL compilation requires an
+explicit `--target system` or `--target user`. ZPKG defaults to `--mode build`
+and also supports `--mode interface`. The installed `zcfg` executable is an
+alias of this canonical frontend; the previous restricted implementation is
+available as `zcfg-legacy` during migration.
+
+Tree commands recursively discover the four source extensions without entering
+symlink directories. They reject relative path case collisions and trees over
+4096 source files, and validate every import relative to the requested root.
+`compile-tree` atomically writes deterministic JSON with bundle, grammar, and IR
+versions. Each sorted source entry contains its relative path, kind, span-free
+semantic descriptor, and compiled Nix text.
+
+`compile-tree` applies static ZSTR module attachments and typed-alias descriptors
+before compiling ZMDL sources. ZMDL attachments use extension-free relative
+module IDs: `modules/audio.zmdl` is attached with `(zmdl modules.audio)`.
+ZPKG interface mode emits static semantic descriptors and does not require or
+evaluate the package runtime. This frontend does not claim the future complete
+configuration schema or package runtime; unsupported backend semantics are
+reported as source diagnostics.

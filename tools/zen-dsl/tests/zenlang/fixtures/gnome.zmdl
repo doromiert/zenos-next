@@ -1,0 +1,31 @@
+_meta = {
+  brief = "The GNOME desktop environment";
+  description = ''
+    Standard ZenOS configuration for GNOME.
+  '';
+  maintainers = [ $m.doromiert ];
+  license = $l.napalm;
+};
+
+enable = enableOption {
+  _meta.brief = "Enable the core $name desktop environment";
+  _meta.default = true;
+  s! [ ($cfg.system.services.flatpak.enable or false) ] {
+    services.displayManager.gdm.enable = true;
+    services.desktopManager.gnome.enable = true;
+    environment.systemPackages =
+      with $pkgs;
+      [ wl-clipboard dconf-editor gnome-tweaks ]
+      ++ $lib.optionals ($cfg.system.services.flatpak.enable or false) [ warehouse ];
+  };
+  u!! {
+    home.sessionVariables.XDG_CURRENT_DESKTOP = "GNOME";
+  };
+};
+
+(freeform extension) = {
+  _meta.brief = "Configure extension ${$f.extension}";
+  s!! {
+    services.gnome.extensions.($f.extension).enable = true;
+  };
+};
