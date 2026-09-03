@@ -99,8 +99,7 @@ assert nixpkgs.lib.hasInfix "XDG_CONFIG_HOME" cfg.environment.extraInit;
 assert cfg.environment.etc ? "systemd/user-environment-generators/20-zenfs";
 assert nixpkgs.lib.hasInfix "alice:/Users/alice" userEnvironmentGenerator;
 assert nixpkgs.lib.hasInfix "GNUPGHOME=$HOME/.private/Config/gnupg" userEnvironmentGenerator;
-assert nixpkgs.lib.hasInfix "NIX_PROFILE=$HOME/.private/State/nix/profiles/profile"
-  userEnvironmentGenerator;
+assert !(nixpkgs.lib.hasInfix "NIX_PROFILE=" userEnvironmentGenerator);
 assert !(nixpkgs.lib.hasInfix "gdm-greeter" userEnvironmentGenerator);
 assert cfg.systemd.user.services.zenfs-user-init.serviceConfig.Type == "oneshot";
 assert cfg.systemd.user.services.zenos-user-app-index.serviceConfig.Type == "oneshot";

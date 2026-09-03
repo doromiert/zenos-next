@@ -792,7 +792,6 @@ in
               "GOPATH=$HOME/.private/Packages/go" \
               "HISTFILE=$HOME/.private/State/shell/history" \
               "LESSHISTFILE=$HOME/.private/State/less/history" \
-              "NIX_PROFILE=$HOME/.private/State/nix/profiles/profile" \
               "NPM_CONFIG_USERCONFIG=$HOME/.private/Config/npm/npmrc" \
               "PASSWORD_STORE_DIR=$HOME/.private/Packages/password-store" \
               "PYTHON_HISTORY=$HOME/.private/State/python/history" \
@@ -818,7 +817,6 @@ in
           export GOPATH="$XDG_DATA_HOME/go"
           export HISTFILE="$XDG_STATE_HOME/shell/history"
           export LESSHISTFILE="$XDG_STATE_HOME/less/history"
-          export NIX_PROFILE="$XDG_STATE_HOME/nix/profiles/profile"
           export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
           export PASSWORD_STORE_DIR="$XDG_DATA_HOME/password-store"
           export PYTHON_HISTORY="$XDG_STATE_HOME/python/history"
