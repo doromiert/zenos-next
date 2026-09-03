@@ -946,6 +946,8 @@ def _emit_type(annotation: Expression, emitter: NixEmitter) -> str:
         and len(annotation.path) == 1
     ):
         name = _static_path(annotation.path)[0]
+        if name == "null":
+            return "(lib.types.enum [ null ])"
         return "lib.types." + aliases.get(name, name)
     if isinstance(annotation, CallExpr) and isinstance(annotation.callee, Variable):
         callee = annotation.callee

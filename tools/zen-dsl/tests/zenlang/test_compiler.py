@@ -303,6 +303,18 @@ names = { _meta.type = $type.list [ $type.string ]; };
         self.assertIn("lib.mapAttrsToList (user: _zenValue:", output)
         self.assertIn("users.users.${user}.isNormalUser", output)
 
+        nullable = compile_zmdl(
+            parse(
+                "value = { _meta.type = $type.either [ $type.null $type.path ]; _meta.default = null; };",
+                "nullable.zmdl",
+            ),
+            target="system",
+        )
+        self.assertIn(
+            "lib.types.either (lib.types.enum [ null ]) lib.types.path",
+            nullable,
+        )
+
     def test_canonical_zmdl_is_deterministic(self) -> None:
         document = parse_file(FIXTURES / "gnome.zmdl")
         self.assertEqual(
