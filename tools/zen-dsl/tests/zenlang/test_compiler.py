@@ -76,6 +76,7 @@ class NixEmitterTests(unittest.TestCase):
             ),
             ("source.github", "source.github"),
             ("$pkgs.zenos.git", "pkgs.zenos.git"),
+            ("$pkgs.legacy.epiphany", "pkgs.zenos.legacy.epiphany"),
             ("$name", '"expression"'),
             ("[ 1 true ]", "[\n  1\n  true\n]"),
             ("{ z = 2; a = 1; }", "{\n  z = 2;\n  a = 1;\n}"),

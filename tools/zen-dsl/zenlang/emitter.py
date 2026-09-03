@@ -435,6 +435,17 @@ class NixEmitter:
             source_name = expression.span.source.rsplit("/", 1)[-1]
             source_name = source_name.rsplit(".", 1)[0]
             return quote_nix_string(source_name)
+        if expression.name == "pkgs":
+            remaining = expression.path
+            if (
+                remaining
+                and isinstance(remaining[0], IdentifierSegment)
+                and remaining[0].name == "zenos"
+            ):
+                remaining = remaining[1:]
+            return "pkgs.zenos" + "".join(
+                f".{self.segment(segment)}" for segment in remaining
+            )
         if expression.name not in self.variable_roots:
             raise NixEmissionError(f"no Nix mapping for variable ${expression.name}")
         root = self.variable_roots[expression.name]
