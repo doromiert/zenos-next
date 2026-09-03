@@ -90,7 +90,7 @@ stdenvNoCC.mkDerivation {
 
   meta = {
     description = "Canonical parser and compiler frontend for the four ZenOS DSL formats";
-    license = lib.licenses.napalm;
+    license = lib.licenses.napalm or lib.licenses.unfree;
     mainProgram = "zcfg";
     platforms = lib.platforms.all;
   };
