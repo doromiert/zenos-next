@@ -1,10 +1,2 @@
-/result
-/result-*
-/*.qcow2
-/*-vars.fd
-/.vm-ssh-key
-/.vm-ssh-key.pub
-/.direnv
-/.opencode-unattended/
 __pycache__/
 *.py[cod]

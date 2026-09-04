@@ -1,360 +1,97 @@
 {
-  description = "ZenOS next-generation base system";
+  description = "ZenOS host and image compositions";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # popcorn.url = "github:zenos-n/popcorn";
-
     zenpkgs = {
       url = "github:zenos-n/zenpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    zenos-setup = {
-      url = "github:zenos-n/zenos-setup";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    zenos-oobe-mode = {
-      url = "github:zenos-n/zenos-oobe-mode-extension";
-      flake = false;
-    };
-
-    zenos-plymouth-assets = {
-      url = "github:zenos-n/plymouth-theme";
-      flake = false;
-    };
-
-    zerobridge = {
-      url = "github:doromiert/zerobridge";
-      flake = false;
-    };
   };
 
   outputs =
-    inputs@{ self, nixpkgs, ... }:
+    { self, nixpkgs, zenpkgs }:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [ inputs.zenpkgs.overlays.default ];
-        config.allowUnfree = true;
-      };
-
-      zenpkgsIntegration = {
-        imports = [ inputs.zenpkgs.nixosModules.interface ];
-        nixpkgs.overlays = [ inputs.zenpkgs.overlays.default ];
-        nix.registry.zenpkgs.flake = inputs.zenpkgs;
-      };
-
-      coreModules = [
-        ./modules/zenfs
-        ./modules/app-platform.nix
-        ./modules/maintenance
-        ./modules/janitor
-        ./modules/platform
-      ];
-
-      platformTools = import ./packages/platform-tools {
-        inherit pkgs;
-        zerobridgeSource = inputs.zerobridge;
-      };
-
-      configTemplate = pkgs.callPackage ./packages/config-template.nix { inherit inputs; };
-
-      installedHostNames =
-        if builtins.pathExists ./hosts then
-          builtins.filter (
-            name:
-            let
-              hostDir = ./hosts + "/${name}";
-            in
-            (builtins.readDir ./hosts).${name} == "directory" && builtins.pathExists (hostDir + "/host.nix")
-          ) (builtins.attrNames (builtins.readDir ./hosts))
-        else
-          [ ];
-
-      mkInstalledHost =
-        hostName:
+      hostEntries = builtins.readDir ./hosts;
+      hostNames = builtins.filter (
+        name:
+        hostEntries.${name} == "directory"
+        && builtins.pathExists (./hosts + "/${name}/host.zcfg")
+      ) (builtins.attrNames hostEntries);
+      mkHost =
+        name:
         let
-          hostDir = ./hosts + "/${hostName}";
+          source = ./hosts + "/${name}";
+          generated = pkgs.runCommand "zenos-host-${name}.nix" {
+            nativeBuildInputs = [ zenpkgs.packages.${system}.zen-dsl ];
+            src = source;
+          } ''
+            zen-dsl compile "$src/host.zcfg" --import-root "$src" -o "$out"
+          '';
         in
         lib.nixosSystem {
           inherit system;
-          specialArgs = { inherit inputs; };
-          modules =
-            coreModules
-            ++ [
-              zenpkgsIntegration
-              inputs.disko.nixosModules.disko
-              ./modules/installed-base.nix
-              (
-                { pkgs, ... }:
-                import (hostDir + "/host.nix") { inherit pkgs; }
-              )
-            ]
-            ++ lib.optional (builtins.pathExists (hostDir + "/hardware-configuration.nix")) (
-              hostDir + "/hardware-configuration.nix"
-            );
-          # Popcorn disabled: re-enable the generated kernel module import with the flake input.
-          # ++ lib.optional (builtins.pathExists (hostDir + "/kernel.nix")) (hostDir + "/kernel.nix");
+          modules = [
+            {
+              nixpkgs.overlays = [ zenpkgs.overlays.default ];
+            }
+            zenpkgs.nixosModules.default
+            (import generated)
+          ];
         };
-
-      zenosOobeVm = lib.nixosSystem {
+      pkgs = import nixpkgs {
         inherit system;
-        specialArgs = { inherit inputs; };
-        modules = [
-          zenpkgsIntegration
-          ./modules/base.nix
-          ./modules/oobe.nix
-        ]
-        ++ coreModules
-        ++ [
-          ./profiles/vm.nix
-        ];
+        overlays = [ zenpkgs.overlays.default ];
+        config.allowUnfree = true;
       };
-
-      zenosInstallerIso = lib.nixosSystem {
-        inherit system;
-        specialArgs = { inherit configTemplate inputs; };
-        modules = [
-          zenpkgsIntegration
-          ./modules/base.nix
-        ]
-        ++ coreModules
-        ++ [
-          ./profiles/installer-iso.nix
-        ];
-      };
-
-      forceEvalCheck = name: value: builtins.deepSeq value (pkgs.runCommand name { } "touch $out");
-
-      pythonCheck =
-        name: suite: extraEnv:
-        pkgs.runCommand name { nativeBuildInputs = [ pkgs.python3 ]; } ''
-          export PYTHONDONTWRITEBYTECODE=1
-          ${extraEnv}
-          python -m unittest discover -s ${./tests}/${suite} -p 'test_*.py' -v
-          touch "$out"
-        '';
     in
     {
-      nixosModules = {
-        base = import ./modules/base.nix;
-        oobe = import ./modules/oobe.nix;
-        zenfs = import ./modules/zenfs;
-        app-platform = import ./modules/app-platform.nix;
-        maintenance = import ./modules/maintenance;
-        janitor = import ./modules/janitor;
-        gnome-profile = import ./modules/gnome-profile.nix;
-        platform = import ./modules/platform;
-        platform-hardware = import ./modules/platform/hardware.nix;
-        platform-connection-suite = import ./modules/platform/connection-suite.nix;
-        platform-refind = import ./modules/platform/refind.nix;
-        platform-xr-supervisor = import ./modules/platform/xr-supervisor.nix;
-        default = self.nixosModules.base;
-      };
+      nixosConfigurations = lib.genAttrs hostNames mkHost;
 
-      nixosConfigurations = lib.genAttrs installedHostNames mkInstalledHost // {
-        zenos-oobe-vm = zenosOobeVm;
-        zenos-installer-iso = zenosInstallerIso;
-      };
+      checks.${system}.repository-structure =
+        pkgs.runCommand "zenos-next-repository-structure" { src = self; } ''
+          required='AGENTS.md LICENSE docs flake.lock flake.nix hosts readme.md'
+          allowed="$required .git .gitignore"
 
-      packages.${system} = platformTools // {
-        config-template = configTemplate;
-        vm = zenosOobeVm.config.system.build.vm;
-        iso = zenosInstallerIso.config.system.build.isoImage;
-        zen-dsl = pkgs.callPackage ./packages/zen-dsl.nix { };
-        zenfsctl = pkgs.callPackage ./packages/zenfsctl { };
-        zenos-ops = pkgs.callPackage ./packages/zenos-ops { };
-        recovery-tools = pkgs.callPackage ./packages/recovery-tools { };
-        app-index = pkgs.callPackage ./packages/app-index { };
-        nautilus-apps = pkgs.callPackage ./packages/nautilus-apps {
-          appIndex = self.packages.${system}.app-index;
-        };
-        default = self.packages.${system}.vm;
-      };
+          for name in AGENTS.md LICENSE flake.lock flake.nix readme.md; do
+            if [ ! -f "$src/$name" ] || [ -L "$src/$name" ]; then
+              echo "required zenos-next root file is missing or invalid: $name" >&2
+              exit 1
+            fi
+          done
+          for name in docs hosts; do
+            if [ ! -d "$src/$name" ] || [ -L "$src/$name" ]; then
+              echo "required zenos-next root directory is missing or invalid: $name" >&2
+              exit 1
+            fi
+          done
+          if [ -e "$src/.gitignore" ] && { [ ! -f "$src/.gitignore" ] || [ -L "$src/.gitignore" ]; }; then
+            echo "zenos-next .gitignore must be a regular file" >&2
+            exit 1
+          fi
+          if [ -e "$src/.git" ] && { [ ! -d "$src/.git" ] || [ -L "$src/.git" ]; }; then
+            echo "zenos-next .git must be a directory" >&2
+            exit 1
+          fi
 
-      apps.${system} = {
-        vm = {
-          type = "app";
-          program = "${zenosOobeVm.config.system.build.vm}/bin/run-zenos-oobe-vm";
-        };
-        zen-dsl = {
-          type = "app";
-          program = "${self.packages.${system}.zen-dsl}/bin/zen-dsl";
-        };
-        zcfg = {
-          type = "app";
-          program = "${self.packages.${system}.zen-dsl}/bin/zcfg";
-        };
-        default = self.apps.${system}.vm;
-      };
+          for entry in "$src"/* "$src"/.[!.]* "$src"/..?*; do
+            [ -e "$entry" ] || [ -L "$entry" ] || continue
+            name="''${entry##*/}"
+            case " $allowed " in
+              *" $name "*) ;;
+              *) echo "forbidden zenos-next root entry: $name" >&2; exit 1 ;;
+            esac
+            if [ -L "$entry" ]; then
+              echo "symlinked zenos-next root entry is forbidden: $name" >&2
+              exit 1
+            fi
+          done
 
-      checks.${system} = {
-        config-template = import ./tests/config-template {
-          inherit configTemplate pkgs;
-        };
-        iso-version =
-          assert lib.hasPrefix "1.0.0Nb-" zenosInstallerIso.config.system.nixos.label;
-          assert zenosInstallerIso.config.isoImage.grubTheme != null;
-          assert lib.hasInfix "#FFC532FF" zenosInstallerIso.config.isoImage.syslinuxTheme;
-          pkgs.runCommand "zenos-iso-version-check" { } "touch $out";
-        vm-system = zenosOobeVm.config.system.build.toplevel;
-        installer-iso-system = zenosInstallerIso.config.system.build.toplevel;
-        zen-dsl = self.packages.${system}.zen-dsl;
-        dsl-vm = import ./tests/zen-dsl/vm.nix {
-          inherit pkgs;
-          zenDsl = self.packages.${system}.zen-dsl;
-        };
-        dsl-parser-unit =
-          pkgs.runCommand "zenos-dsl-parser-unit-tests"
-            {
-              nativeBuildInputs = [
-                pkgs.nix
-                pkgs.python3
-              ];
-            }
-            ''
-              export PYTHONDONTWRITEBYTECODE=1
-              export PYTHONPATH=${./tools/zen-dsl}
-              python -m py_compile \
-                ${./tools/zen-dsl/zenlang/compiler.py} \
-                ${./tools/zen-dsl/zenlang/emitter.py} \
-                ${./tools/zen-dsl/tests/zenlang/test_compiler.py}
-              python -m unittest discover -s ${./tools/zen-dsl/tests/zenlang} -p 'test_*.py' -v
-              touch "$out"
-            '';
-        zenfsctl = self.packages.${system}.zenfsctl;
-        zenos-ops = self.packages.${system}.zenos-ops;
-        platform =
-          builtins.deepSeq
-            (import ./tests/platform/eval.nix {
-              inherit nixpkgs system;
-              zenpkgs = inputs.zenpkgs;
-            })
-            (
-              import ./tests/platform {
-                inherit nixpkgs system;
-                zenpkgs = inputs.zenpkgs;
-              }
-            );
-        zenfs-eval = forceEvalCheck "zenfs-evaluation" (
-          import ./tests/zenfs/eval.nix {
-            inherit nixpkgs system;
-            zenpkgs = inputs.zenpkgs;
-          }
-        );
-        app-platform-eval = forceEvalCheck "app-platform-evaluation" (
-          import ./tests/app-platform/eval.nix {
-            inherit nixpkgs system;
-          }
-        );
-        zenfs-unit = pythonCheck "zenfs-unit-tests" "zenfs" ''
-          export ZENFSCTL_SCRIPT=${./packages/zenfsctl/zenfsctl.py}
-        '';
-        ops-unit = pythonCheck "zenos-ops-unit-tests" "ops" ''
-          export ZENOS_OPS_SOURCE=${./packages/zenos-ops}
-        '';
-        platform-unit = pythonCheck "zenos-platform-unit-tests" "platform" ''
-          export REFIND_SCRIPT=${./scripts/refind.py}
-          export REFIND_THEME=${./assets/refind/themes/zenos-picker/theme.conf}
-          export REFIND_CONFIG=${./assets/refind/refind.conf}
-          export ZEN_HARDWARE_SCRIPT=${./packages/platform-tools/zen-hardware/zen_hardware.py}
-          export ZEN_HARDWARE_DATABASE=${./packages/platform-tools/zen-hardware/presets.json}
-          export ZEN_XR_SUPERVISOR_SCRIPT=${./packages/platform-tools/xr-supervisor/zen_xr_supervisor.py}
-        '';
-        app-index-unit = pythonCheck "zenos-app-index-unit-tests" "app-index" ''
-          export PYTHONPATH=${./packages/app-index}:${./packages/nautilus-apps}
-        '';
-        nautilus-apps-unit =
-          pkgs.runCommand "zenos-nautilus-apps-unit-tests"
-            {
-              nativeBuildInputs = [
-                pkgs.python3
-                pkgs.python3Packages.pygobject3
-                pkgs.gobject-introspection
-                pkgs.glib
-                pkgs.gtk4
-                pkgs.shared-mime-info
-                pkgs.zenos.apps.system.nautilus
-                pkgs.zenos.apps.system.nautilus-python
-              ];
-            }
-            ''
-              python -m py_compile ${./packages/nautilus-apps/zenos_apps.py}
-              python -m py_compile ${./packages/nautilus-apps/zen_app_launch.py}
-              python -m py_compile ${./packages/nautilus-apps/zen_app_icons.py}
-              mkdir -p "$TMPDIR/share/mime/packages"
-              cp ${self.packages.${system}.nautilus-apps}/share/mime/packages/zenos-managed-desktop.xml \
-                "$TMPDIR/share/mime/packages/"
-              XDG_DATA_HOME="$TMPDIR/share" update-mime-database "$TMPDIR/share/mime"
-              cat > "$TMPDIR/managed-app" <<'EOF'
-              [Desktop Entry]
-              X-ZenOS-Managed=true
-              Type=Application
-              Name=Managed
-              Exec=true
-              EOF
-              cat > "$TMPDIR/ordinary-file" <<'EOF'
-              [Desktop Entry]
-              Type=Application
-              Name=Ordinary
-              Exec=true
-              EOF
-              XDG_DATA_HOME="$TMPDIR/share" XDG_DATA_DIRS=${pkgs.shared-mime-info}/share \
-                gio info -a standard::content-type "$TMPDIR/managed-app" \
-                | grep -q 'application/x-zenos-app'
-              XDG_DATA_HOME="$TMPDIR/share" XDG_DATA_DIRS=${pkgs.shared-mime-info}/share \
-                gio info -a standard::content-type "$TMPDIR/ordinary-file" \
-                | grep -q 'text/plain'
-              export GI_TYPELIB_PATH=${pkgs.zenos.apps.system.nautilus}/lib/girepository-1.0:''${GI_TYPELIB_PATH:-}
-              python - <<'PY'
-              import gi
-              import importlib.util
-
-              gi.require_version("Gtk", "4.0")
-              gi.require_version("Nautilus", "4.1")
-              spec = importlib.util.spec_from_file_location(
-                  "zenos_apps", "${./packages/nautilus-apps/zenos_apps.py}"
-              )
-              module = importlib.util.module_from_spec(spec)
-              spec.loader.exec_module(module)
-              from gi.repository import Nautilus
-
-              menu = Nautilus.Menu()
-              Nautilus.MenuItem(name="ZenOSApps::ApiCheck", label="API Check", menu=menu, sensitive=True)
-              assert module.ZenOSAppsExtension
-              PY
-              touch "$out"
-            '';
-        setup-unit = pkgs.runCommand "zenos-setup-unit-tests" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-          export PYTHONDONTWRITEBYTECODE=1
-          export PYTHONPATH=${inputs.zenos-setup}
-          python -m unittest discover -s ${inputs.zenos-setup}/tests -p 'test_*.py' -v
           touch "$out"
         '';
-        setup-zcfg-contract =
-          pkgs.runCommand "zenos-setup-zcfg-contract"
-            {
-              nativeBuildInputs = [ pkgs.python3 ];
-            }
-            ''
-              export PYTHONDONTWRITEBYTECODE=1
-              export PYTHONPATH=${./tools/zen-dsl}
-              export ZENOS_SETUP_SOURCE=${inputs.zenos-setup}
-              python -m unittest discover -s ${./tests/setup} -p 'test_*.py' -v
-              touch "$out"
-            '';
-      };
 
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
+      formatter.${system} = pkgs.nixfmt-tree;
     };
 }

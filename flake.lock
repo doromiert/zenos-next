@@ -1,25 +1,5 @@
 {
   "nodes": {
-    "disko": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1781152676,
-        "narHash": "sha256-RxWs5ND31KzTG7wvMM+PMfUjyNpmIEr999lqNARaM5o=",
-        "owner": "nix-community",
-        "repo": "disko",
-        "rev": "ff8702b4de27f72b4c78573dfb89ec74e36abdf1",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "disko",
-        "type": "github"
-      }
-    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -496,13 +476,8 @@
     },
     "root": {
       "inputs": {
-        "disko": "disko",
         "nixpkgs": "nixpkgs",
-        "zenos-oobe-mode": "zenos-oobe-mode",
-        "zenos-plymouth-assets": "zenos-plymouth-assets",
-        "zenos-setup": "zenos-setup",
-        "zenpkgs": "zenpkgs",
-        "zerobridge": "zerobridge"
+        "zenpkgs": "zenpkgs"
       }
     },
     "systems": {
@@ -560,58 +535,6 @@
         "type": "github"
       }
     },
-    "zenos-oobe-mode": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1788259635,
-        "narHash": "sha256-VUI65sW0yNcS4TVu0HHmRIpL4q2PxNCHw1Kxx3zBnGc=",
-        "owner": "zenos-n",
-        "repo": "zenos-oobe-mode-extension",
-        "rev": "1e93ab1571163f37a1355bfc9d985fb906930178",
-        "type": "github"
-      },
-      "original": {
-        "owner": "zenos-n",
-        "repo": "zenos-oobe-mode-extension",
-        "type": "github"
-      }
-    },
-    "zenos-plymouth-assets": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1778440329,
-        "narHash": "sha256-ltX1704M5umTuq78HfapUdUHB1Esfa8PUoSsk7Tg1DU=",
-        "owner": "zenos-n",
-        "repo": "plymouth-theme",
-        "rev": "e6478d286075ec85ca8827d3625ed7ecd508c656",
-        "type": "github"
-      },
-      "original": {
-        "owner": "zenos-n",
-        "repo": "plymouth-theme",
-        "type": "github"
-      }
-    },
-    "zenos-setup": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1788300812,
-        "narHash": "sha256-PlBkMiRw9J9to4dNJWqpEHoFy2Z6WGketpO/kx6y5tw=",
-        "owner": "zenos-n",
-        "repo": "zenos-setup",
-        "rev": "0857c8b53603ebbe824093fcf77bfa6cae75d25d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "zenos-n",
-        "repo": "zenos-setup",
-        "type": "github"
-      }
-    },
     "zenpkgs": {
       "inputs": {
         "home-manager": "home-manager",
@@ -639,22 +562,6 @@
       "original": {
         "owner": "zenos-n",
         "repo": "zenpkgs",
-        "type": "github"
-      }
-    },
-    "zerobridge": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1788259635,
-        "narHash": "sha256-tYlxxAfXLlXgL206a9ivYiLnVn+EnV4JrhRTCMLVKNU=",
-        "owner": "doromiert",
-        "repo": "zerobridge",
-        "rev": "a2ca3c681258d56706e75b2fbea31907caf9081f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "doromiert",
-        "repo": "zerobridge",
         "type": "github"
       }
     }
