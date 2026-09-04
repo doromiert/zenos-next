@@ -90,11 +90,13 @@ incomplete protocol behavior requires explicit acknowledgement when enabled.
 
 ```sh
 nix flake check --max-jobs 1 --cores 20
+nix build .#checks.x86_64-linux.dsl-vm -L
 ```
 
-Checks cover the DSL, Setup builder and dry-run safety, Setup-to-DSL contract,
-ZenFS CLI and module evaluation, maintenance/Janitor, platform tools, the OOBE
-system, and installer system. The ISO is built separately through `.#iso`.
+Checks cover the DSL unit and VM contracts, Setup builder and dry-run safety,
+Setup-to-DSL contract, ZenFS CLI and module evaluation, maintenance/Janitor,
+platform tools, the OOBE system, and installer system. The ISO is built
+separately through `.#iso`.
 
 ## Current safety boundary
 

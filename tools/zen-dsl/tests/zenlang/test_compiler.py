@@ -55,6 +55,10 @@ def expression(source: str, kind: str = "zpkg"):
     )
 
 
+def zmdl_document(source: str, name: str):
+    return parse(source, str(FIXTURES / "modules" / name))
+
+
 class NixEmitterTests(unittest.TestCase):
     def test_literals_strings_paths_references_variables_lists_and_attrsets(
         self,
@@ -94,7 +98,7 @@ class NixEmitterTests(unittest.TestCase):
             ("fn 1 2", "((fn 1) 2)"),
             ("if true then 1 else 2", "(if true then 1 else 2)"),
             ("let value = 1; in value", "(let\n  value = 1;\nin value)"),
-            ("with $pkgs; git", "(with pkgs.zenos; git)"),
+            ("with $pkgs.zenos; git", "(with pkgs.zenos; git)"),
             ("value: value + 1", "(value: (value + 1))"),
             ("{ value ? 1, ... }: value", "({ value ? 1, ... }: value)"),
         )
@@ -271,7 +275,7 @@ enable = enableOption {
   s!! { assertions = [ ]; };
 };
 """
-        output = compile_zmdl(parse(source, "desktop.zmdl"), target="system")
+        output = compile_zmdl(zmdl_document(source, "desktop.zmdl"), root=FIXTURES)
         self.assertIn("options.zenos.desktop", output)
         self.assertIn("enable = lib.mkOption", output)
         self.assertIn("type = lib.types.bool;", output)
@@ -281,6 +285,7 @@ enable = enableOption {
         self.assertIn("home-manager.sharedModules", output)
         self.assertIn("lib.mkMerge", output)
         self.assertIn("_module.args.zenlang.descriptors.desktop", output)
+        self.assertIn('moduleIdentity = "zenos.desktop";', output)
         self.assertIn("statements = [", output)
 
     def test_typed_options_and_freeforms_compile(self) -> None:
@@ -292,7 +297,7 @@ names = { _meta.type = $type.list [ $type.string ]; };
   s!! { users.users.($f.user).isNormalUser = true; };
 };
 """
-        output = compile_zmdl(parse(source, "accounts.zmdl"), target="system")
+        output = compile_zmdl(zmdl_document(source, "accounts.zmdl"), root=FIXTURES)
         self.assertIn(
             "port = lib.mkOption { type = lib.types.int; default = 22; }", output
         )
@@ -304,11 +309,11 @@ names = { _meta.type = $type.list [ $type.string ]; };
         self.assertIn("users.users.${user}.isNormalUser", output)
 
         nullable = compile_zmdl(
-            parse(
+            zmdl_document(
                 "value = { _meta.type = $type.either [ $type.null $type.path ]; _meta.default = null; };",
                 "nullable.zmdl",
             ),
-            target="system",
+            root=FIXTURES,
         )
         self.assertIn(
             "lib.types.either (lib.types.enum [ null ]) lib.types.path",
@@ -316,25 +321,36 @@ names = { _meta.type = $type.list [ $type.string ]; };
         )
 
     def test_canonical_zmdl_is_deterministic(self) -> None:
-        document = parse_file(FIXTURES / "gnome.zmdl")
+        document = parse_file(FIXTURES / "modules" / "desktops" / "gnome.zmdl")
         self.assertEqual(
-            compile_zmdl(document, target="system"),
-            compile_zmdl(document, target="system"),
+            compile_zmdl(document, root=FIXTURES),
+            compile_zmdl(document, root=FIXTURES),
         )
 
-    def test_generic_actions_route_only_to_the_explicit_target(self) -> None:
-        document = parse("enable = enableOption { !! { value = true; }; };", "route.zmdl")
-        system = compile_zmdl(document, target="system")
-        user = compile_zmdl(document, target="user")
-        self.assertNotIn("home-manager.sharedModules", system)
-        self.assertIn("home-manager.sharedModules", user)
+    def test_standalone_zmdl_requires_an_explicit_source_root(self) -> None:
+        document = parse("value = true;", "standalone.zmdl")
+        with self.assertRaisesRegex(CompilationError, "explicit source root"):
+            compile_zmdl(document)
+
+    def test_standalone_zmdl_rejects_authored_identity(self) -> None:
+        document = zmdl_document('_meta.id = "zenos.programs.demo";', "programs/demo.zmdl")
+        with self.assertRaisesRegex(CompilationError, "must not be authored"):
+            compile_zmdl(document, root=FIXTURES)
+
+    def test_generic_actions_emit_target_neutral_module_configuration(self) -> None:
+        document = zmdl_document(
+            "enable = enableOption { !! { value = true; }; };", "route.zmdl"
+        )
+        output = compile_zmdl(document, root=FIXTURES)
+        self.assertIn("value = true;", output)
+        self.assertNotIn("home-manager.sharedModules", output)
 
     def test_module_local_aliases_are_retained_in_the_descriptor(self) -> None:
         document = parse(
             '(alias legacy.demo.enable) = { target = "nixos"; path = "services.demo.enable"; type = $type.bool; };',
-            "alias.zmdl",
+            str(FIXTURES / "modules" / "alias.zmdl"),
         )
-        output = compile_zmdl(document, target="system")
+        output = compile_zmdl(document, root=FIXTURES)
         self.assertIn("aliases = [", output)
         self.assertIn('value = "legacy";', output)
 
@@ -404,7 +420,7 @@ _build = { type = $type.cargo; command = "build"; };
 class ZstrCompilerTests(unittest.TestCase):
     def test_structure_is_a_versioned_runtime_descriptor(self) -> None:
         output = compile_zstr(parse_file(FIXTURES / "typed-aliases.zstr"))
-        self.assertIn('descriptorVersion = "zenlang.semantic/1";', output)
+        self.assertIn('descriptorVersion = "zenlang.semantic/2";', output)
         self.assertIn('kind = "zstr";', output)
         self.assertIn('kind = "alias";', output)
         self.assertIn('type = "lambda";', output)
@@ -422,7 +438,9 @@ class CompilerIntegrationTests(unittest.TestCase):
         self.assertIn("zenos", compile_document(parse("value = true;", "a.zcfg")))
         self.assertIn(
             "mkOption",
-            compile_document(parse("value = true;", "a.zmdl"), target="system"),
+            compile_document(
+                zmdl_document("value = true;", "a.zmdl"), root=FIXTURES
+            ),
         )
         self.assertIn(
             "buildPackage", compile_document(parse("value = true;", "a.zpkg"))
@@ -439,7 +457,10 @@ class CompilerIntegrationTests(unittest.TestCase):
     def test_all_canonical_outputs_are_accepted_by_the_nix_parser(self) -> None:
         outputs = (
             compile_zcfg(parse_file(FIXTURES / "host.zcfg")),
-            compile_zmdl(parse_file(FIXTURES / "gnome.zmdl"), target="system"),
+            compile_zmdl(
+                parse_file(FIXTURES / "modules" / "desktops" / "gnome.zmdl"),
+                root=FIXTURES,
+            ),
             compile_zpkg(parse_file(FIXTURES / "bat.zpkg"), mode="interface"),
             compile_zpkg(parse_file(FIXTURES / "bat.zpkg"), mode="build"),
             compile_zstr(parse_file(FIXTURES / "structure.zstr")),
@@ -469,11 +490,16 @@ class CompilerCliTests(unittest.TestCase):
             root = Path(directory)
             for index, (suffix, source_text, mode, expected) in enumerate(cases):
                 with self.subTest(suffix=suffix, mode=mode):
-                    source = root / f"source-{index}.{suffix}"
+                    source = (
+                        root / "modules" / f"source-{index}.{suffix}"
+                        if suffix == "zmdl"
+                        else root / f"source-{index}.{suffix}"
+                    )
+                    source.parent.mkdir(parents=True, exist_ok=True)
                     source.write_text(source_text, encoding="utf-8")
                     arguments = ["compile", str(source)]
                     if suffix == "zmdl":
-                        arguments.extend(("--target", "system"))
+                        arguments.extend(("--root", str(root)))
                     if mode is not None:
                         arguments.extend(("--mode", mode))
                     stdout = StringIO()
@@ -513,13 +539,31 @@ class CompilerCliTests(unittest.TestCase):
             )
             self.assertIn("--mode is only valid for .zpkg", stderr.getvalue())
 
-    def test_zmdl_cli_requires_an_explicit_target(self) -> None:
+    def test_zmdl_cli_requires_an_explicit_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            source = Path(directory) / "module.zmdl"
+            source = Path(directory) / "modules" / "example.zmdl"
+            source.parent.mkdir()
             source.write_text("value = true;", encoding="utf-8")
             stderr = StringIO()
             self.assertEqual(1, main(["compile", str(source)], StringIO(), stderr))
-            self.assertIn("--target is required", stderr.getvalue())
+            self.assertIn("--root is required", stderr.getvalue())
+
+    def test_zmdl_cli_derives_identity_from_the_rooted_source_path(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "modules" / "programs" / "demo.zmdl"
+            source.parent.mkdir(parents=True)
+            source.write_text("value = true;", encoding="utf-8")
+            stdout = StringIO()
+            self.assertEqual(
+                0,
+                main(
+                    ["compile", str(source), "--root", str(root)],
+                    stdout,
+                    StringIO(),
+                ),
+            )
+            self.assertIn('moduleIdentity = "zenos.programs.demo";', stdout.getvalue())
 
     def test_cli_preserves_backend_error_spans(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -537,13 +581,18 @@ class TreeCompilerTests(unittest.TestCase):
     def _write_tree(self, root: Path) -> None:
         nested = root / "nested"
         nested.mkdir()
+        modules = root / "modules" / "desktops"
+        modules.mkdir(parents=True)
         (root / "system.zcfg").write_text(
             "system.enabled = true; if true { system.checked = true; };",
             encoding="utf-8",
         )
-        (nested / "module.zmdl").write_text("value = true;", encoding="utf-8")
+        (modules / "gnome.zmdl").write_text("value = true;", encoding="utf-8")
         (nested / "package.zpkg").write_text("value = true;", encoding="utf-8")
-        (root / "structure.zstr").write_text("(zmdl nested.module) = { };", encoding="utf-8")
+        (root / "structure.zstr").write_text(
+            "desktops = { _meta.brief = \"Desktop environments\"; };",
+            encoding="utf-8",
+        )
         (root / "ignored.txt").write_text("value = false;", encoding="utf-8")
 
     def test_tree_bundle_is_sorted_versioned_span_free_and_deterministic(self) -> None:
@@ -554,7 +603,7 @@ class TreeCompilerTests(unittest.TestCase):
             checked = check_tree(root)
             self.assertEqual(
                 [
-                    "nested/module.zmdl",
+                    "modules/desktops/gnome.zmdl",
                     "nested/package.zpkg",
                     "structure.zstr",
                     "system.zcfg",
@@ -569,31 +618,50 @@ class TreeCompilerTests(unittest.TestCase):
             self.assertEqual(IR_VERSION, first["irVersion"])
             self.assertEqual(list(checked), [item["path"] for item in first["sources"]])
             self.assertNotIn('"span"', json.dumps(first, sort_keys=True))
-            self.assertEqual("nested/module", first["structure"]["attachments"][0]["module"])
+            self.assertEqual(
+                [
+                    {
+                        "identity": "zenos.desktops.gnome",
+                        "optionPath": ["zenos", "desktops", "gnome"],
+                        "path": "modules/desktops/gnome.zmdl",
+                    }
+                ],
+                first["modules"],
+            )
+            self.assertNotIn("target", first["modules"][0])
+            self.assertNotIn("scope", first["modules"][0])
+            self.assertEqual({"aliases": []}, first["structure"])
             for source in first["sources"]:
                 self.assertEqual(source["kind"], source["descriptor"]["kind"])
                 self.assertTrue(source["compiledNix"])
 
-    def test_fixture_tree_applies_attachments_and_typed_aliases(self) -> None:
+    def test_fixture_tree_derives_modules_and_retains_typed_aliases(self) -> None:
         bundle = compile_tree(FIXTURES, mode="interface")
-        gnome = next(source for source in bundle["sources"] if source["path"] == "gnome.zmdl")
-        self.assertIn('modulePath = [\n      "desktop"', gnome["compiledNix"])
-        attachment = next(
-            item for item in bundle["structure"]["attachments"] if item["module"] == "gnome"
+        gnome = next(
+            source
+            for source in bundle["sources"]
+            if source["path"] == "modules/desktops/gnome.zmdl"
         )
-        self.assertEqual(["desktop"], attachment["path"])
+        self.assertIn(
+            'modulePath = [\n      "desktops"\n      "gnome"',
+            gnome["compiledNix"],
+        )
+        self.assertIn("options.zenos.desktops.gnome", gnome["compiledNix"])
+        self.assertEqual("zenos.desktops.gnome", bundle["modules"][0]["identity"])
         self.assertTrue(bundle["structure"]["aliases"])
         self.assertIn(
-            ["ssh", "implementation", "enable"],
+            ["legacy", "services", "ssh", "port"],
             [alias["path"] for alias in bundle["structure"]["aliases"]],
         )
 
     def test_tree_imports_use_the_explicit_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            nested = root / "nested"
-            nested.mkdir()
-            (root / "shared.zmdl").write_text("shared = true;", encoding="utf-8")
+            nested = root / "modules" / "nested"
+            nested.mkdir(parents=True)
+            (root / "modules" / "shared.zmdl").write_text(
+                "shared = true;", encoding="utf-8"
+            )
             (nested / "entry.zmdl").write_text(
                 '_import "../shared.zmdl"; local = true;', encoding="utf-8"
             )
@@ -611,46 +679,59 @@ class TreeCompilerTests(unittest.TestCase):
     def test_tree_rejects_case_collisions_and_file_count_overflow(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "Name.zstr").write_text("value = true;", encoding="utf-8")
-            (root / "name.ZSTR").write_text("value = false;", encoding="utf-8")
+            modules = root / "modules"
+            modules.mkdir()
+            (modules / "Name.zmdl").write_text("value = true;", encoding="utf-8")
+            (modules / "name.ZMDL").write_text("value = false;", encoding="utf-8")
             with self.assertRaisesRegex(CompilationError, "case-colliding"):
                 check_tree(root)
 
-            (root / "name.ZSTR").unlink()
+            (modules / "name.ZMDL").unlink()
             (root / "other.zpkg").write_text("value = true;", encoding="utf-8")
             with patch("zenlang.compiler.MAX_TREE_FILES", 1):
                 with self.assertRaisesRegex(CompilationError, "maximum of 1"):
                     check_tree(root)
 
-    def test_tree_requires_unambiguous_relative_module_ids(self) -> None:
+    def test_tree_rejects_noncanonical_module_paths_and_id_mismatches(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "a").mkdir()
-            (root / "b").mkdir()
-            (root / "a" / "foo.zmdl").write_text("value = true;", encoding="utf-8")
-            (root / "b" / "foo.zmdl").write_text("value = true;", encoding="utf-8")
-            structure = root / "structure.zstr"
-            structure.write_text("(zmdl foo) = { };", encoding="utf-8")
-            with self.assertRaisesRegex(CompilationError, "a/foo"):
-                compile_tree(root, mode="interface")
+            outside = root / "outside.zmdl"
+            outside.write_text("value = true;", encoding="utf-8")
+            with self.assertRaisesRegex(CompilationError, "below modules/"):
+                check_tree(root)
 
-            structure.write_text(
-                "(zmdl a.foo) = { }; (zmdl b.foo) = { };",
-                encoding="utf-8",
-            )
-            bundle = compile_tree(root, mode="interface")
-            self.assertEqual(
-                ["a/foo", "b/foo"],
-                [item["module"] for item in bundle["structure"]["attachments"]],
-            )
+            outside.unlink()
+            modules = root / "modules"
+            modules.mkdir()
+            for name in ("default", "index", "module"):
+                generic = modules / f"{name}.zmdl"
+                generic.write_text("value = true;", encoding="utf-8")
+                with self.subTest(name=name), self.assertRaisesRegex(
+                    CompilationError, "reserved generic"
+                ):
+                    check_tree(root)
+                generic.unlink()
+            gnome = modules / "desktops" / "gnome.zmdl"
+            gnome.parent.mkdir()
+            gnome.write_text('_meta.id = "desktop.gnome";', encoding="utf-8")
+            with self.assertRaisesRegex(CompilationError, "must not be authored"):
+                check_tree(root)
 
-            structure.write_text(
-                "(zmdl a.foo) = { }; (zmdl a.foo) = { };",
-                encoding="utf-8",
-            )
-            with self.assertRaisesRegex(CompilationError, "duplicate ZSTR attachment") as raised:
-                compile_tree(root, mode="interface")
-            self.assertIsNotNone(raised.exception.span)
+            gnome.write_text('_meta.id = "zenos.desktops.gnome";', encoding="utf-8")
+            with self.assertRaisesRegex(CompilationError, "must not be authored"):
+                check_tree(root)
+
+    def test_tree_rejects_duplicate_path_derived_module_identities(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "modules" / "a.b"
+            second = root / "modules" / "a"
+            first.mkdir(parents=True)
+            second.mkdir(parents=True)
+            (first / "c.zmdl").write_text("value = true;", encoding="utf-8")
+            (second / "b.c.zmdl").write_text("value = true;", encoding="utf-8")
+            with self.assertRaisesRegex(CompilationError, "duplicate ZMDL module identity"):
+                check_tree(root)
 
     def test_tree_cli_writes_atomically_and_reports_json_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

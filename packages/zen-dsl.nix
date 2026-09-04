@@ -71,7 +71,9 @@ stdenvNoCC.mkDerivation {
     EOF
     "$out/bin/zen-dsl" compile "$TMPDIR/compile.zcfg" -o "$TMPDIR/compile.nix"
     grep -q 'zenos = {' "$TMPDIR/compile.nix"
-    "$out/bin/zen-dsl" compile tests/zenlang/fixtures/gnome.zmdl --target system -o "$TMPDIR/module.nix"
+    "$out/bin/zen-dsl" compile tests/zenlang/fixtures/modules/desktops/gnome.zmdl --root tests/zenlang/fixtures -o "$TMPDIR/module.nix"
+    grep -q 'descriptorVersion = "zenlang.semantic/2";' "$TMPDIR/module.nix"
+    grep -q 'moduleIdentity = "zenos.desktops.gnome";' "$TMPDIR/module.nix"
     "$out/bin/zen-dsl" compile tests/zenlang/fixtures/bat.zpkg --mode interface -o "$TMPDIR/package.nix"
     "$out/bin/zen-dsl" compile tests/zenlang/fixtures/structure.zstr -o "$TMPDIR/structure.nix"
     "$out/bin/zen-dsl" check-tree --root tests/zenlang/fixtures
@@ -82,8 +84,17 @@ stdenvNoCC.mkDerivation {
 
     with open(sys.argv[1], encoding="utf-8") as source:
         bundle = json.load(source)
-    assert bundle["bundleVersion"] == "zenlang.bundle/1"
+    assert bundle["bundleVersion"] == "zenlang.bundle/2"
+    assert all(
+        entry["descriptor"]["descriptorVersion"] == "zenlang.semantic/2"
+        for entry in bundle["sources"]
+    )
     assert {entry["kind"] for entry in bundle["sources"]} == {"zcfg", "zmdl", "zpkg", "zstr"}
+    assert bundle["modules"] == [{
+        "identity": "zenos.desktops.gnome",
+        "optionPath": ["zenos", "desktops", "gnome"],
+        "path": "modules/desktops/gnome.zmdl",
+    }]
     PY
     runHook postInstallCheck
   '';

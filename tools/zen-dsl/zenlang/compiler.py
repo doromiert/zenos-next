@@ -34,9 +34,10 @@ from .model import (
 )
 
 
-DESCRIPTOR_VERSION = "zenlang.semantic/1"
-BUNDLE_VERSION = "zenlang.bundle/1"
+DESCRIPTOR_VERSION = "zenlang.semantic/2"
+BUNDLE_VERSION = "zenlang.bundle/2"
 MAX_TREE_FILES = 4096
+_RESERVED_MODULE_LEAF_NAMES = frozenset(("default", "index", "module"))
 
 
 class CompilationError(ValueError):
@@ -51,12 +52,12 @@ def compile_document(
     document: Document,
     *,
     mode: str = "build",
-    target: str | None = None,
+    root: str | Path | None = None,
 ) -> str:
     if document.kind is FileKind.ZCFG:
         return compile_zcfg(document)
     if document.kind is FileKind.ZMDL:
-        return compile_zmdl(document, target=target)
+        return compile_zmdl(document, root=root)
     if document.kind is FileKind.ZPKG:
         return compile_zpkg(document, mode=mode)
     if document.kind is FileKind.ZSTR:
@@ -89,6 +90,7 @@ def check_tree(root: str | Path) -> dict[str, Document]:
             raise CompilationError(message)
         folded_paths[folded] = relative
         documents[relative] = parse_file(source, import_root=resolved_root)
+    _tree_modules(documents)
     return documents
 
 
@@ -97,27 +99,12 @@ def compile_tree(root: str | Path, *, mode: str = "build") -> dict[str, Any]:
         raise CompilationError("ZPKG mode must be 'interface' or 'build'")
     resolved_root = _tree_root(root)
     documents = check_tree(resolved_root)
+    modules = _tree_modules(documents)
     sources = []
     structure = _tree_structure(documents)
     for relative, document in documents.items():
-        target = None
-        option_path = None
         if document.kind is FileKind.ZMDL:
-            module_name = relative[: -len(".zmdl")]
-            matches = [item for item in structure["attachments"] if item["module"] == module_name]
-            if len(matches) != 1:
-                raise CompilationError(
-                    f"ZMDL module {module_name!r} requires exactly one ZSTR attachment",
-                    document.span,
-                )
-            option_path = tuple(matches[0]["path"])
-            if any(part.startswith("{") for part in option_path):
-                raise CompilationError(
-                    f"dynamic ZSTR attachment for {module_name!r} is not supported by this backend",
-                    document.span,
-                )
-            target = matches[0]["target"]
-            compiled = compile_zmdl(document, option_path=option_path, target=target)
+            compiled = compile_zmdl(document, root=resolved_root)
         else:
             compiled = compile_document(document, mode=mode)
         sources.append(
@@ -132,6 +119,7 @@ def compile_tree(root: str | Path, *, mode: str = "build") -> dict[str, Any]:
         "bundleVersion": BUNDLE_VERSION,
         "grammarVersion": GRAMMAR_VERSION,
         "irVersion": IR_VERSION,
+        "modules": modules,
         "structure": structure,
         "sources": sources,
     }
@@ -223,13 +211,17 @@ def compile_zcfg(document: Document) -> str:
 def compile_zmdl(
     document: Document,
     *,
-    option_path: tuple[str, ...] | None = None,
-    target: str | None = None,
+    root: str | Path | None = None,
 ) -> str:
     _require_kind(document, FileKind.ZMDL)
-    if target not in ("system", "user"):
-        raise CompilationError("ZMDL compilation requires target='system' or target='user'", document.span)
-    module_path = option_path or (_source_name(document),)
+    if root is None:
+        raise CompilationError(
+            "ZMDL compilation requires an explicit source root",
+            document.span,
+        )
+    module = _zmdl_module(document, root)
+    module_path = tuple(module["optionPath"][1:])
+    _reject_zmdl_authored_id(document)
     emitter = NixEmitter({"path": "cfg"})
     top_metadata: dict[str, Expression] = {}
     option_lines: list[tuple[tuple[str, ...], str]] = []
@@ -262,7 +254,7 @@ def compile_zmdl(
                     (freeform_path, _freeform_option(statement.value))
                 )
                 actions.extend(
-                    _freeform_actions(statement.value, freeform_path, emitter, target=target)
+                    _freeform_actions(statement.value, freeform_path, emitter)
                 )
                 continue
             if statement.target.kind == "alias":
@@ -278,7 +270,7 @@ def compile_zmdl(
                 statement.target.span,
             )
         option_lines.append((path, _option_declaration(statement.value, emitter)))
-        actions.extend(_option_actions(statement.value, path, emitter, target=target))
+        actions.extend(_option_actions(statement.value, path, emitter))
 
     option_lines.sort(key=lambda item: item[0])
     option_padding = " " * 4
@@ -303,7 +295,7 @@ def compile_zmdl(
             for key, value in sorted(top_metadata.items())
         },
         "modulePath": list(module_path),
-        "compileTarget": target,
+        "moduleIdentity": module["identity"],
         "aliases": aliases,
         "statements": semantic_descriptor(_resolved_statements(document)),
     }
@@ -602,8 +594,99 @@ def _coalesce_assignments(statements: tuple[Any, ...]) -> tuple[Any, ...]:
     return tuple(result)
 
 
+def _tree_modules(documents: dict[str, Document]) -> list[dict[str, Any]]:
+    modules: list[dict[str, Any]] = []
+    identities: dict[str, dict[str, Any]] = {}
+    folded_identities: dict[str, dict[str, Any]] = {}
+
+    for relative, document in documents.items():
+        if document.kind is not FileKind.ZMDL:
+            continue
+        module = _module_record(relative, document)
+        identity = module["identity"]
+        previous = identities.get(identity)
+        if previous is not None:
+            raise CompilationError(
+                f"duplicate ZMDL module identity {identity!r}: "
+                f"{previous['path']} and {relative}",
+                document.span,
+            )
+        folded = identity.casefold()
+        previous = folded_identities.get(folded)
+        if previous is not None:
+            raise CompilationError(
+                f"case-colliding ZMDL module identities: "
+                f"{previous['identity']} and {identity}",
+                document.span,
+            )
+        _reject_zmdl_authored_id(document)
+        identities[identity] = module
+        folded_identities[folded] = module
+        modules.append(module)
+
+    modules.sort(key=lambda module: module["path"])
+    return modules
+
+
+def _zmdl_module(document: Document, root: str | Path) -> dict[str, Any]:
+    resolved_root = _tree_root(root)
+    source = Path(document.span.source)
+    try:
+        resolved_source = source.resolve()
+        relative = resolved_source.relative_to(resolved_root).as_posix()
+    except (OSError, RuntimeError, ValueError) as error:
+        raise CompilationError(
+            f"ZMDL source must be below explicit root {resolved_root}: {source}",
+            document.span,
+        ) from error
+    return _module_record(relative, document)
+
+
+def _module_record(relative: str, document: Document) -> dict[str, Any]:
+    parts = PurePath(relative).parts
+    if len(parts) < 2 or parts[0] != "modules":
+        raise CompilationError(
+            f"ZMDL source must be below modules/: {relative}",
+            document.span,
+        )
+    if not relative.endswith(".zmdl"):
+        raise CompilationError(
+            f"ZMDL source must use the lowercase .zmdl extension: {relative}",
+            document.span,
+        )
+    module_path = (*parts[1:-1], parts[-1][: -len(".zmdl")])
+    leaf = module_path[-1]
+    if leaf.casefold() in _RESERVED_MODULE_LEAF_NAMES:
+        raise CompilationError(
+            f"reserved generic ZMDL leaf name {leaf!r}: {relative}",
+            document.span,
+        )
+    canonical_path = ("zenos", *module_path)
+    return {
+        "identity": ".".join(canonical_path),
+        "optionPath": list(canonical_path),
+        "path": relative,
+    }
+
+
+def _reject_zmdl_authored_id(document: Document) -> None:
+    metadata: dict[str, Expression] = {}
+    for statement in _resolved_statements(document):
+        if not isinstance(statement, Assignment):
+            continue
+        path = _assignment_path(statement)
+        if path and path[0] == "_meta":
+            _collect_metadata(metadata, path[1:], statement.value)
+    value = metadata.get("id")
+    if value is not None:
+        raise CompilationError(
+            "ZMDL _meta.id must not be authored; module identity is derived "
+            "from its modules/<path>.zmdl source path",
+            value.span,
+        )
+
+
 def _tree_structure(documents: dict[str, Document]) -> dict[str, Any]:
-    attachments: list[dict[str, Any]] = []
     aliases: list[dict[str, Any]] = []
 
     def marker_path(marker: StructuralMarker) -> tuple[str, ...]:
@@ -617,19 +700,7 @@ def _tree_structure(documents: dict[str, Document]) -> dict[str, Any]:
                 continue
             if isinstance(statement.target, StructuralMarker):
                 nested_prefix = prefix
-                if statement.target.kind == "zmdl":
-                    module = marker_path(statement.target)
-                    path = (*prefix, *module)
-                    nested_prefix = path
-                    attachments.append(
-                        {
-                            "module": "/".join(module),
-                            "path": list(path),
-                            "target": "user" if path and path[0] == "users" else "system",
-                            "_span": statement.target.span,
-                        }
-                    )
-                elif statement.target.kind == "alias":
+                if statement.target.kind == "alias":
                     aliases.append(
                         {
                             "path": list((*prefix, *marker_path(statement.target))),
@@ -646,17 +717,7 @@ def _tree_structure(documents: dict[str, Document]) -> dict[str, Any]:
             if isinstance(statement.value, StructuralMarker):
                 marker = statement.value
                 owner = path[:-2] if path[-2:] == ("_meta", "type") else path
-                if marker.kind == "zmdl":
-                    module = marker_path(marker)
-                    attachments.append(
-                        {
-                            "module": "/".join(module),
-                            "path": list(owner),
-                            "target": "user" if owner and owner[0] == "users" else "system",
-                            "_span": marker.span,
-                        }
-                    )
-                elif marker.kind == "alias":
+                if marker.kind == "alias":
                     aliases.append(
                         {
                             "path": list(owner),
@@ -669,29 +730,8 @@ def _tree_structure(documents: dict[str, Document]) -> dict[str, Any]:
     for _relative, document in documents.items():
         if document.kind is FileKind.ZSTR:
             visit(document.statements, ())
-    modules: dict[str, dict[str, Any]] = {}
-    paths: dict[tuple[str, ...], dict[str, Any]] = {}
-    for attachment in attachments:
-        previous_module = modules.get(attachment["module"])
-        if previous_module is not None:
-            raise CompilationError(
-                f"duplicate ZSTR attachment for module {attachment['module']!r}",
-                attachment["_span"],
-            )
-        path_key = tuple(attachment["path"])
-        previous_path = paths.get(path_key)
-        if previous_path is not None:
-            raise CompilationError(
-                f"ZSTR attachment path {'.'.join(path_key)!r} is already used by {previous_path['module']!r}",
-                attachment["_span"],
-            )
-        modules[attachment["module"]] = attachment
-        paths[path_key] = attachment
-    attachments.sort(key=lambda item: (item["module"], item["path"]))
-    for attachment in attachments:
-        del attachment["_span"]
     aliases.sort(key=lambda item: item["path"])
-    return {"aliases": aliases, "attachments": attachments}
+    return {"aliases": aliases}
 
 
 def _emit_static_path(path: tuple[str, ...]) -> str:
@@ -982,13 +1022,11 @@ def _option_actions(
     value: Expression,
     path: tuple[str, ...],
     emitter: NixEmitter,
-    *,
-    target: str,
 ) -> list[str]:
     _, actions, _ = _option_parts(value)
     option_value = "cfg." + _emit_static_path(path)
     return [
-        _emit_action(action, emitter, conditional_base=option_value, target=target)
+        _emit_action(action, emitter, conditional_base=option_value)
         for action in actions
     ]
 
@@ -997,8 +1035,6 @@ def _freeform_actions(
     value: Expression,
     path: tuple[str, ...],
     emitter: NixEmitter,
-    *,
-    target: str,
 ) -> list[str]:
     _, actions, _ = _option_parts(value)
     if not actions:
@@ -1006,7 +1042,7 @@ def _freeform_actions(
     variable = path[-1]
     local_emitter = NixEmitter({"f": None, "path": "cfg"})
     rendered = [
-        _emit_action(action, local_emitter, conditional_base="true", target=target)
+        _emit_action(action, local_emitter, conditional_base="true")
         for action in actions
     ]
     body = (
@@ -1026,7 +1062,6 @@ def _emit_action(
     emitter: NixEmitter,
     *,
     conditional_base: str,
-    target: str,
 ) -> str:
     body = emitter.attr_set(action.body, 4)
     if action.scope == "system":
@@ -1034,11 +1069,7 @@ def _emit_action(
     elif action.scope == "user":
         routed = "{ home-manager.sharedModules = [ " + body + " ]; }"
     elif action.scope == "shared":
-        routed = (
-            body
-            if target == "system"
-            else "{ home-manager.sharedModules = [ " + body + " ]; }"
-        )
+        routed = body
     else:
         raise CompilationError(f"unknown action scope: {action.scope!r}", action.span)
     if action.unconditional:

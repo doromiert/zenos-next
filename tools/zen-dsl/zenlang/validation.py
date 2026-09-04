@@ -338,8 +338,8 @@ def _validate_statement(
         is_option = (
             kind is FileKind.ZMDL
             and top_level
-            and len(target_names) == 1
-            and target_names[0] != "_meta"
+            and bool(target_names)
+            and "_meta" not in target_names
         )
         if isinstance(statement.target, StructuralMarker):
             is_option = kind is FileKind.ZMDL and top_level and statement.target.kind == "freeform"
@@ -762,7 +762,7 @@ def _validate_marker(
         FileKind.ZCFG: frozenset(),
         FileKind.ZPKG: frozenset(),
         FileKind.ZMDL: frozenset(("freeform", "alias")),
-        FileKind.ZSTR: frozenset(("freeform", "zmdl", "alias", "packages", "programs")),
+        FileKind.ZSTR: frozenset(("freeform", "alias", "packages", "programs")),
     }[kind]
     if marker.kind not in allowed:
         raise ZenLangError(
@@ -1134,9 +1134,23 @@ def _validate_expression_names(
         _validate_expression_names(expression.body, inner, package_scope)
     elif isinstance(expression, WithExpr):
         _validate_expression_names(expression.scope, lexical, package_scope)
-        if not isinstance(expression.scope, Variable) or expression.scope.name != "pkgs" or expression.scope.path:
+        if (
+            not isinstance(expression.scope, Variable)
+            or expression.scope.name != "pkgs"
+            or not expression.scope.path
+            or not isinstance(expression.scope.path[0], IdentifierSegment)
+            or expression.scope.path[0].name != "zenos"
+            or any(
+                not isinstance(segment, (IdentifierSegment, StringSegment))
+                for segment in expression.scope.path
+            )
+        ):
             raise ZenLangError(
-                Diagnostic("ZEN216", "with expressions are restricted to 'with $pkgs;'", expression.scope.span)
+                Diagnostic(
+                    "ZEN216",
+                    "with expressions require $pkgs.zenos or a static subtree of it",
+                    expression.scope.span,
+                )
             )
         _validate_expression_names(expression.body, lexical, True)
     elif isinstance(expression, LambdaExpr):

@@ -41,7 +41,7 @@ class CanonicalFixtureTests(unittest.TestCase):
     def test_all_strategy_fixtures_parse(self) -> None:
         expected = {
             "host.zcfg": FileKind.ZCFG,
-            "gnome.zmdl": FileKind.ZMDL,
+            "modules/desktops/gnome.zmdl": FileKind.ZMDL,
             "bat.zpkg": FileKind.ZPKG,
             "structure.zstr": FileKind.ZSTR,
             "typed-aliases.zstr": FileKind.ZSTR,
@@ -53,7 +53,7 @@ class CanonicalFixtureTests(unittest.TestCase):
                 self.assertTrue(document.statements)
 
     def test_gnome_fixture_contains_actions_enable_option_and_with(self) -> None:
-        document = parse_file(FIXTURES / "gnome.zmdl")
+        document = parse_file(FIXTURES / "modules" / "desktops" / "gnome.zmdl")
         enable = document.statements[1]
         self.assertIsInstance(enable, Assignment)
         self.assertIsInstance(enable.value, EnableOption)
@@ -64,11 +64,21 @@ class CanonicalFixtureTests(unittest.TestCase):
         self.assertIsInstance(packages.value, WithExpr)
         self.assertIsInstance(packages.value.body, BinaryExpr)
 
-    def test_structure_fixture_contains_all_marker_kinds(self) -> None:
-        document = parse_file(FIXTURES / "structure.zstr")
-        serialized = json.dumps(ast_to_dict(document), sort_keys=True)
-        for marker in ("freeform", "zmdl", "alias", "packages", "programs"):
+    def test_structure_fixtures_contain_the_normative_marker_kinds(self) -> None:
+        documents = (
+            parse_file(FIXTURES / "structure.zstr"),
+            parse_file(FIXTURES / "typed-aliases.zstr"),
+        )
+        serialized = json.dumps(
+            [ast_to_dict(document) for document in documents], sort_keys=True
+        )
+        for marker in ("freeform", "alias", "packages", "programs"):
             self.assertIn(f'"kind": "{marker}"', serialized)
+
+    def test_zstr_rejects_zmdl_registration_markers(self) -> None:
+        with self.assertRaises(ZenLangError) as raised:
+            parse("(zmdl desktops.gnome) = { };", "structure.zstr")
+        self.assertEqual("ZEN116", raised.exception.diagnostic.code)
 
 
 class LexerParserTests(unittest.TestCase):
@@ -477,18 +487,18 @@ scope = {
             "allowed.zcfg",
         )
         invalid = (
-            "value = $lib.id (true);",
-            "value = x: x;",
-            "value = with $pkgs; git;",
-            "value = let x = 1; in x;",
-            "value = if true then 1 else 2;",
-            "value = foo;",
-            "value = [ 1 ] ++ [ 2 ];",
+            ("value = $lib.id (true);", "ZEN211"),
+            ("value = x: x;", "ZEN211"),
+            ("value = with $pkgs; git;", "ZEN211"),
+            ("value = let x = 1; in x;", "ZEN211"),
+            ("value = if true then 1 else 2;", "ZEN211"),
+            ("value = foo;", "ZEN211"),
+            ("value = [ 1 ] ++ [ 2 ];", "ZEN211"),
         )
-        for source in invalid:
+        for source, code in invalid:
             with self.subTest(source=source), self.assertRaises(ZenLangError) as raised:
                 parse(source, "bad.zcfg")
-            self.assertEqual("ZEN211", raised.exception.diagnostic.code)
+            self.assertEqual(code, raised.exception.diagnostic.code)
 
     def test_interpolation_rejects_statically_non_scalar_values(self) -> None:
         for source in (
@@ -538,7 +548,7 @@ scope = {
             "option.nested = { s! { x = true; }; };",
             "option._meta = enableOption { s! { x = true; }; };",
         )
-        expected = ("ZEN213", "ZEN213", "ZEN203", "ZEN206")
+        expected = ("ZEN213", "ZEN213", "ZEN217", "ZEN206")
         for source, code in zip(invalid, expected):
             with self.subTest(source=source), self.assertRaises(ZenLangError) as raised:
                 parse(source, "bad.zmdl")
@@ -612,12 +622,19 @@ class ImportGraphTests(unittest.TestCase):
             )
             parse_file(entry)
 
-    def test_rejects_arbitrary_evaluator_roots_and_allows_pkgs_with_scope(self) -> None:
-        parse("value = with $pkgs; [ git tools.ripgrep ];", "packages.zpkg")
+    def test_rejects_arbitrary_evaluator_roots_and_allows_zenos_with_scope(self) -> None:
+        parse(
+            "value = with $pkgs.zenos; [ git tools.ripgrep ];",
+            "packages.zpkg",
+        )
+        parse("value = with $pkgs.zenos.legacy; [ git ];", "legacy.zpkg")
         for source in (
             'value = builtins.abort "boom";',
             'value = import "payload.nix";',
-            'value = with $pkgs; builtins.abort "boom";',
+            "value = with $pkgs; git;",
+            "value = with $pkgs.lib; id;",
+            "value = with $pkgs.stdenv; mkDerivation;",
+            'value = with $pkgs.zenos; builtins.abort "boom";',
             'value = undeclared "argument";',
         ):
             with self.subTest(source=source), self.assertRaises(ZenLangError) as raised:

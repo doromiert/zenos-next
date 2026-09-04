@@ -65,7 +65,7 @@ _BINARY_PRECEDENCE = {
     TokenKind.SLASH: 80,
 }
 
-_STRUCTURAL_KINDS = frozenset(("freeform", "zmdl", "alias", "packages", "programs"))
+_STRUCTURAL_KINDS = frozenset(("freeform", "alias", "packages", "programs"))
 _LITERAL_KEYWORDS = {"null": None, "true": True, "false": False}
 _EXPRESSION_KEYWORD_STOPS = frozenset(("then", "else", "in"))
 _DEFAULT_PRECEDENCE = 95
@@ -559,7 +559,7 @@ class Parser:
         end = self._consume(TokenKind.RPAREN, "expected ')' after structural marker")
         if kind.text in ("packages", "programs") and argument is not None:
             self._raise(kind, "ZEN114", f"({kind.text}) does not accept an argument")
-        if kind.text in ("freeform", "zmdl", "alias") and argument is None:
+        if kind.text in ("freeform", "alias") and argument is None:
             self._raise(kind, "ZEN114", f"({kind.text}) requires an argument")
         return StructuralMarker(
             kind.text,

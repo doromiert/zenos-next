@@ -210,6 +210,10 @@
         vm-system = zenosOobeVm.config.system.build.toplevel;
         installer-iso-system = zenosInstallerIso.config.system.build.toplevel;
         zen-dsl = self.packages.${system}.zen-dsl;
+        dsl-vm = import ./tests/zen-dsl/vm.nix {
+          inherit pkgs;
+          zenDsl = self.packages.${system}.zen-dsl;
+        };
         dsl-parser-unit =
           pkgs.runCommand "zenos-dsl-parser-unit-tests"
             {

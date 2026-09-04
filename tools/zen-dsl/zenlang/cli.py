@@ -52,9 +52,8 @@ def build_parser() -> argparse.ArgumentParser:
                 help="ZPKG compilation mode (default: build)",
             )
             command.add_argument(
-                "--target",
-                choices=("system", "user"),
-                help="required attachment target for ZMDL compilation",
+                "--root",
+                help="source tree root used to derive a standalone ZMDL identity",
             )
     check_tree_command = commands.add_parser(
         "check-tree", help="validate every ZenOS DSL source below a root"
@@ -127,19 +126,19 @@ def _compile(arguments: argparse.Namespace, stdout: TextIO, stderr: TextIO) -> i
                     Span.point(arguments.file),
                 )
             )
-        if kind is FileKind.ZMDL and arguments.target is None:
+        if kind is FileKind.ZMDL and arguments.root is None:
             raise ZenLangError(
                 Diagnostic(
                     "ZEN201",
-                    "--target is required for .zmdl source files",
+                    "--root is required for .zmdl source files",
                     Span.point(arguments.file),
                 )
             )
-        if kind is not FileKind.ZMDL and arguments.target is not None:
+        if kind is not FileKind.ZMDL and arguments.root is not None:
             raise ZenLangError(
                 Diagnostic(
                     "ZEN201",
-                    "--target is only valid for .zmdl source files",
+                    "--root is only valid for .zmdl source files",
                     Span.point(arguments.file),
                 )
             )
@@ -151,11 +150,12 @@ def _compile(arguments: argparse.Namespace, stdout: TextIO, stderr: TextIO) -> i
         return 1
 
     try:
-        document = parse_file(arguments.file, import_root=arguments.import_root)
+        import_root = arguments.import_root or arguments.root
+        document = parse_file(arguments.file, import_root=import_root)
         output = compile_document(
             document,
             mode=arguments.mode or "build",
-            target=arguments.target,
+            root=arguments.root,
         )
         _write_warnings(document, stderr, arguments.diagnostic_format)
     except ZenLangError as error:

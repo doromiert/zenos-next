@@ -255,8 +255,6 @@ class NixEmitter:
             return f"(let\n{body}\n{' ' * indent}in {self.expression(expression.body, indent)})"
         if isinstance(expression, WithExpr):
             scope = self.expression(expression.scope, indent)
-            if isinstance(expression.scope, Variable) and expression.scope.name == "pkgs" and not expression.scope.path:
-                scope = "pkgs.zenos"
             return (
                 f"(with {scope}; "
                 f"{self.expression(expression.body, indent)})"

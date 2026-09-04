@@ -123,39 +123,47 @@ warning; new sources use `_import`.
 
 Executable bare names must be declared lexical bindings. Evaluator and backend
 roots are reserved, and package names are available bare only inside
-`with $pkgs;`. Boolean guards use `_let` annotations and ZMDL option metadata;
-an unknown `$cfg` selection must use a boolean default such as `or false` as an
-explicit deferred-type marker. Calls are not valid guards. DSL path literals
-remain tagged path descriptors rather than being coerced to strings.
+`with $pkgs.zenos;` or a static subtree such as
+`with $pkgs.zenos.legacy;`. Boolean guards use `_let` annotations and ZMDL
+option metadata; an unknown `$cfg` selection must use a boolean default such as
+`or false` as an explicit deferred-type marker. Calls are not valid guards. DSL
+path literals remain tagged path descriptors rather than being coerced to strings.
 
 ```sh
 python3 -m zenlang check module.zmdl
 python3 -m zenlang ast package.zpkg
 python3 -m zenlang compile system.zcfg -o system.nix
-python3 -m zenlang compile module.zmdl --target system -o module.nix
+python3 -m zenlang compile sources/modules/programs/example.zmdl --root sources -o module.nix
 python3 -m zenlang compile package.zpkg --mode interface -o package.nix
 python3 -m zenlang check-tree --root sources
 python3 -m zenlang compile-tree --root sources --output bundle.json
 ```
 
 The installed `zen-dsl` executable provides the same commands and uses the
-shared parser and compiler for all four formats. ZMDL compilation requires an
-explicit `--target system` or `--target user`. ZPKG defaults to `--mode build`
-and also supports `--mode interface`. The installed `zcfg` executable is an
-alias of this canonical frontend; the previous restricted implementation is
-available as `zcfg-legacy` during migration.
+shared parser and compiler for all four formats. Standalone ZMDL compilation
+requires an explicit `--root` and derives identity only from a source path below
+`<root>/modules/`; repository-tree mode uses the same mapping. ZPKG defaults to
+`--mode build` and also supports `--mode interface`. The installed `zcfg`
+executable is an alias of this canonical frontend; the previous restricted
+implementation is available as `zcfg-legacy` during migration.
 
 Tree commands recursively discover the four source extensions without entering
 symlink directories. They reject relative path case collisions and trees over
 4096 source files, and validate every import relative to the requested root.
-`compile-tree` atomically writes deterministic JSON with bundle, grammar, and IR
-versions. Each sorted source entry contains its relative path, kind, span-free
-semantic descriptor, and compiled Nix text.
+Every ZMDL must be a named leaf below `modules/`; generic `default`, `index`, and
+`module` leaves, duplicate or case-colliding identities, and any authored
+`_meta.id` are rejected. `modules/desktops/gnome.zmdl` has canonical
+module identity `zenos.desktops.gnome` and compiles at that option path. Module
+records do not infer system/user targets; each ZMDL action carries its own scope.
 
-`compile-tree` applies static ZSTR module attachments and typed-alias descriptors
-before compiling ZMDL sources. ZMDL attachments use extension-free relative
-module IDs: `modules/audio.zmdl` is attached with `(zmdl modules.audio)`.
-ZPKG interface mode emits static semantic descriptors and does not require or
-evaluate the package runtime. This frontend does not claim the future complete
-configuration schema or package runtime; unsupported backend semantics are
-reported as source diagnostics.
+`compile-tree` atomically writes deterministic JSON with bundle, grammar, and IR
+versions. Semantic descriptors use `zenlang.semantic/2` and bundles use
+`zenlang.bundle/2`. Each sorted source entry contains its relative path, kind,
+span-free semantic descriptor, and compiled Nix text. The bundle's sorted `modules`
+records expose each source path, path-derived identity, and full option path.
+`structure.zstr` provides schema, freeforms, aliases, and package/program
+selectors; it does not attach or register ZMDL files. ZPKG interface mode emits
+static semantic descriptors and does not require or evaluate the package
+runtime. This frontend does not claim the future complete configuration schema
+or package runtime; unsupported backend semantics are reported as source
+diagnostics.

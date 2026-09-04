@@ -1,27 +1,33 @@
+_meta = {
+  zenosVersion = 0.1.0;
+  id = "zenos.typed-alias-proposal";
+  brief = "Typed upstream alias proposal";
+  description = "Candidate explicit aliases for the retained legacy namespace.";
+  maintainers = [ $m.doromiert ];
+  license = $l.napalm;
+};
+
+# D13 is not resolved. These declarations show the proposed explicit shape so
+# open aliases and typed aliases can be compared before choosing a policy.
+# ZPKG package aliases are unrelated: they are declared by the canonical ZPKG,
+# derive identity from its filesystem path, and do not resolve this issue.
+
+# A bidirectional scalar alias exposes exactly one stable ZenOS option.
 (alias legacy.network.hostName) = {
-  target = "nixos";
-  path = "networking.hostName";
+  targetPlatform = "nixos";
+  upstreamPath = "networking.hostName";
+  direction = "bidirectional";
   type = $type.string;
+  deprecated = false;
 };
 
-(alias legacy.services.ssh.enable) = {
-  target = "nixos";
-  path = "services.openssh.enable";
-  type = $type.bool;
-};
-
+# Transforms keep the ZenOS value scalar even though upstream stores a list.
 (alias legacy.services.ssh.port) = {
-  target = "nixos";
-  path = "services.openssh.ports";
+  targetPlatform = "nixos";
+  upstreamPath = "services.openssh.ports";
+  direction = "bidirectional";
   type = $type.int;
-  write = $value: [ $value ];
-  read = $value: $lib.first ($value);
-};
-
-(zmdl ssh) = {
-  (alias implementation.enable) = {
-    target = "nixos";
-    path = "services.openssh.enable";
-    type = $type.bool;
-  };
+  toUpstream = value: [ value ];
+  fromUpstream = value: $lib.first value;
+  deprecated = false;
 };
