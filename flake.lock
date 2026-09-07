@@ -1,5 +1,26 @@
 {
   "nodes": {
+    "disko": {
+      "inputs": {
+        "nixpkgs": [
+          "zenpkgs",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1781152676,
+        "narHash": "sha256-RxWs5ND31KzTG7wvMM+PMfUjyNpmIEr999lqNARaM5o=",
+        "owner": "nix-community",
+        "repo": "disko",
+        "rev": "ff8702b4de27f72b4c78573dfb89ec74e36abdf1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "disko",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -537,6 +558,7 @@
     },
     "zenpkgs": {
       "inputs": {
+        "disko": "disko",
         "home-manager": "home-manager",
         "jovian": "jovian",
         "masterful-gestures": "masterful-gestures",
@@ -552,16 +574,17 @@
         "vsc-extensions": "vsc-extensions"
       },
       "locked": {
-        "lastModified": 1788378209,
-        "narHash": "sha256-TK/qh9T4il9h4WkF/cWnBAlvDbQMA3fHf/beQxXcVBM=",
+        "lastModified": 1788775562,
+        "narHash": "sha256-t3V5vBEpgywoA8OCmNqRs5vRvX11NWuPKdvMSvkibe4=",
         "owner": "zenos-n",
         "repo": "zenpkgs",
-        "rev": "6e569aebc62bf4f0191bb843ed265536523a6d8e",
+        "rev": "2306ab6b377b2213b3a77025756e24ea24fe2438",
         "type": "github"
       },
       "original": {
         "owner": "zenos-n",
         "repo": "zenpkgs",
+        "rev": "2306ab6b377b2213b3a77025756e24ea24fe2438",
         "type": "github"
       }
     }

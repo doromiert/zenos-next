@@ -4,32 +4,37 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     zenpkgs = {
-      url = "github:zenos-n/zenpkgs";
+      url = "github:zenos-n/zenpkgs/2306ab6b377b2213b3a77025756e24ea24fe2438";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs =
-    { self, nixpkgs, zenpkgs }:
+    inputs@{
+      self,
+      nixpkgs,
+      zenpkgs,
+    }:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
       hostEntries = builtins.readDir ./hosts;
       hostNames = builtins.filter (
-        name:
-        hostEntries.${name} == "directory"
-        && builtins.pathExists (./hosts + "/${name}/host.zcfg")
+        name: hostEntries.${name} == "directory" && builtins.pathExists (./hosts + "/${name}/host.zcfg")
       ) (builtins.attrNames hostEntries);
       mkHost =
         name:
         let
           source = ./hosts + "/${name}";
-          generated = pkgs.runCommand "zenos-host-${name}.nix" {
-            nativeBuildInputs = [ zenpkgs.packages.${system}.zen-dsl ];
-            src = source;
-          } ''
-            zen-dsl compile "$src/host.zcfg" --import-root "$src" -o "$out"
-          '';
+          generated =
+            pkgs.runCommand "zenos-host-${name}.nix"
+              {
+                nativeBuildInputs = [ zenpkgs.packages.${system}.zen-dsl ];
+                src = source;
+              }
+              ''
+                zen-dsl compile "$src/host.zcfg" --import-root "$src" -o "$out"
+              '';
         in
         lib.nixosSystem {
           inherit system;
@@ -46,12 +51,43 @@
         overlays = [ zenpkgs.overlays.default ];
         config.allowUnfree = true;
       };
+      configTemplate = import ./hosts/installer-iso/config-template.nix {
+        inherit inputs pkgs lib;
+      };
+      installer = lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit inputs configTemplate;
+          installerStage = "live";
+        };
+        modules = [
+          zenpkgs.nixosModules.default
+          ./hosts/installer-iso/image.nix
+          ./hosts/installer-iso/system.nix
+        ];
+      };
     in
     {
-      nixosConfigurations = lib.genAttrs hostNames mkHost;
+      nixosConfigurations = lib.genAttrs hostNames mkHost // {
+        zenos-installer-iso = installer;
+      };
 
-      checks.${system}.repository-structure =
-        pkgs.runCommand "zenos-next-repository-structure" { src = self; } ''
+      packages.${system} = {
+        iso = installer.config.system.build.isoImage;
+        config-template = configTemplate;
+      };
+
+      checks.${system} = {
+        installer-contract = import ./hosts/installer-iso/checks.nix {
+          inherit
+            inputs
+            pkgs
+            installer
+            configTemplate
+            ;
+        };
+
+        repository-structure = pkgs.runCommand "zenos-next-repository-structure" { src = self; } ''
           required='AGENTS.md LICENSE docs flake.lock flake.nix hosts readme.md'
           allowed="$required .git .gitignore"
 
@@ -91,6 +127,7 @@
 
           touch "$out"
         '';
+      };
 
       formatter.${system} = pkgs.nixfmt-tree;
     };

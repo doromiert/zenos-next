@@ -1,0 +1,12 @@
+legacy.networking.hostName = "kde-test";
+desktops.gnome.enable = false;
+legacy.services.desktopManager.plasma6.enable = true;
+legacy.services.xserver.enable = true;
+legacy.services.displayManager.sddm.enable = true;
+users.alice.legacy = {
+  isNormalUser = true;
+  uid = 1000;
+  home = "/Users/alice";
+  password = "test-only";
+  extraGroups = [ "wheel" "networkmanager" ];
+};

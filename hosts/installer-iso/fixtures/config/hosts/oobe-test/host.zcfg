@@ -1,0 +1,2 @@
+legacy.networking.hostName = "oobe-test";
+legacy.services.desktopManager.gnome.enable = true;

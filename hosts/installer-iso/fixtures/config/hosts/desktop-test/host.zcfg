@@ -1,0 +1,8 @@
+legacy.networking.hostName = "desktop-test";
+legacy.services.desktopManager.gnome.enable = true;
+users.alice.legacy = {
+  isNormalUser = true;
+  home = "/Users/alice";
+  password = "test-only";
+  extraGroups = [ "wheel" "networkmanager" ];
+};

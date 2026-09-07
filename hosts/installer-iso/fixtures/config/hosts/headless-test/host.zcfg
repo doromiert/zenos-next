@@ -1,0 +1,9 @@
+legacy.networking.hostName = "headless-test";
+desktops.gnome.enable = false;
+users.alice.legacy = {
+  isNormalUser = true;
+  uid = 1000;
+  home = "/Users/alice";
+  password = "test-only";
+  extraGroups = [ "wheel" "networkmanager" ];
+};

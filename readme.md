@@ -30,3 +30,6 @@ Run the structural gate with:
 ```sh
 nix build path:.#checks.x86_64-linux.repository-structure
 ```
+
+Run builds and acceptance checks in a ZenOS VM. The installer ISO, installed
+template, and Setup handoff are described in [docs/installer.md](docs/installer.md).
