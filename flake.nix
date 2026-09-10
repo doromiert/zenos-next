@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     zenpkgs = {
-      url = "github:zenos-n/zenpkgs/c37352a75c118581e679a84768c12fc28aa50cc6";
+      url = "github:zenos-n/zenpkgs/3a4adad24ebe4cd8eb8c07a0a76eee3a034070ba";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
