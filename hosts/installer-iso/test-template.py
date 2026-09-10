@@ -84,6 +84,11 @@ def main():
             assert node["locked"]["owner"] == owner, node
             assert node["locked"]["repo"] == repo, node
             assert re.fullmatch(r"[0-9a-f]{40}", node["locked"]["rev"]), node
+        zenpkgs_revision = lock["nodes"][root_inputs["zenpkgs"]]["locked"]["rev"]
+        run(
+            "nix", "build", "--no-link",
+            f"github:zenos-n/zenpkgs/{zenpkgs_revision}#dsl-bundle",
+        )
         run("nix", "flake", "lock", "--offline", ref)
 
         def evaluate(host, expression):
