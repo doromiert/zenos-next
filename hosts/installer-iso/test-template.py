@@ -94,6 +94,7 @@ def main():
           gnome = c.services.desktopManager.gnome.enable;
           gdm = c.services.displayManager.gdm.enable;
           sddm = c.services.displayManager.sddm.enable;
+          plasmaLogin = c.services.displayManager.plasma-login-manager.enable;
           greetd = c.services.greetd.enable;
           temporaryUser = c.users.users ? zenos;
           setupService = c.systemd.user.services ? zenos-setup;
@@ -111,7 +112,8 @@ def main():
         for host in ("headless-test", "kde-test"):
             selected = evaluate(host, summary)
             assert not selected["gnome"] and not selected["gdm"] and not selected["greetd"]
-            assert selected["sddm"] == (host == "kde-test")
+            assert not selected["sddm"]
+            assert selected["plasmaLogin"] == (host == "kde-test")
         retained = evaluate("desktop-test", "c: map toString c.system.extraDependencies")
         assert hardware in retained
         assert evaluate("desktop-test", "c: c.home-manager.users.alice.xdg.configHome") == (
