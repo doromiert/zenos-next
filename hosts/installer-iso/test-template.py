@@ -37,11 +37,13 @@ def main():
         "zenpkgs": ("zenos-n", "zenpkgs"),
         "zenosSource": ("doromiert", "zenos-next"),
     }
-    revisions = {}
+    expected_refs = {
+        "nixpkgs": "nixos-26.05",
+        "zenpkgs": "migration/path-derived-dsl",
+        "zenosSource": "main",
+    }
     for name, (owner, repo) in public.items():
-        match = re.search(rf'github:{owner}/{repo}/([0-9a-f]{{40}})', template_text)
-        assert match, (name, template_text)
-        revisions[name] = match.group(1)
+        assert f'github:{owner}/{repo}/{expected_refs[name]}' in template_text
     assert "path:/nix/store" not in template_text
     fixtures = Path(__file__).resolve().parent / "fixtures"
     with tempfile.TemporaryDirectory(prefix="zenos-template-test-", dir="/tmp") as work:
@@ -81,7 +83,7 @@ def main():
             assert node["locked"]["type"] == "github", node
             assert node["locked"]["owner"] == owner, node
             assert node["locked"]["repo"] == repo, node
-            assert node["locked"]["rev"] == revisions[name], node
+            assert re.fullmatch(r"[0-9a-f]{40}", node["locked"]["rev"]), node
         run("nix", "flake", "lock", "--offline", ref)
 
         def evaluate(host, expression):

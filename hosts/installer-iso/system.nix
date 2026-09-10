@@ -182,6 +182,7 @@ in
     sddm.enable = lib.mkIf temporary (lib.mkForce false);
     plasma-login-manager.enable = lib.mkIf temporary (lib.mkForce false);
   };
+  services.displayManager.gdm.settings.daemon.GreeterSession = lib.mkIf (!temporary) "gnome-login";
   services.xserver.displayManager.lightdm.enable = lib.mkIf temporary (lib.mkForce false);
   services.greetd = lib.mkIf temporary {
     enable = true;
@@ -283,6 +284,8 @@ in
   };
 
   home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
     users = lib.mapAttrs (_: user: {
       home = {
         stateVersion = lib.mkDefault "26.05";

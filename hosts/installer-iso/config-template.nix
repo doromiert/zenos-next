@@ -4,20 +4,14 @@
   lib,
 }:
 let
-  revision = name: input:
-    let value = input.rev or input.dirtyRev or null;
-    in assert lib.assertMsg (
-      builtins.isString value && builtins.match "[0-9a-f]{40}" value != null
-    ) "${name} must have an immutable 40-character Git revision";
-    value;
   pinnedInputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/${revision "nixpkgs" inputs.nixpkgs}";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     zenpkgs = {
-      url = "github:zenos-n/zenpkgs/${revision "zenpkgs" inputs.zenpkgs}";
+      url = "github:zenos-n/zenpkgs/migration/path-derived-dsl";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zenosSource = {
-      url = "github:doromiert/zenos-next/${revision "zenos-next" inputs.self}";
+      url = "github:doromiert/zenos-next/main";
       flake = false;
     };
     setup-hardware = {

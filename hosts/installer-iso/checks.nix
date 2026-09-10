@@ -82,6 +82,7 @@ assert desktop.services.openssh.settings.PermitRootLogin == "no";
 assert !oobe.services.openssh.enable;
 assert !live.services.openssh.enable;
 assert desktop.services.displayManager.gdm.enable;
+assert desktop.services.displayManager.gdm.settings.daemon.GreeterSession == "gnome-login";
 assert !oobe.services.displayManager.gdm.enable;
 assert !oobe.services.displayManager.sddm.enable;
 assert !oobe.services.displayManager.plasma-login-manager.enable;
@@ -93,6 +94,9 @@ assert !(desktop.systemd.user.services ? zenos-setup);
 assert desktop.users.users.alice.home == "/Users/alice";
 assert desktop.security.sudo.wheelNeedsPassword;
 assert desktop.services.qemuGuest.enable;
+assert desktop.home-manager.useGlobalPkgs;
+assert desktop.home-manager.useUserPackages;
+assert builtins.elem desktop.home-manager.users.alice.home.path desktop.users.users.alice.packages;
 assert lib.elem (toString (lib.getBin pkgs.nix)) installedNativeTools;
 assert !lib.elem (toString (lib.getDev pkgs.nix)) installedNativeTools;
 assert !oobe.boot.loader.grub.enable && desktop.boot.loader.systemd-boot.enable;
@@ -130,9 +134,9 @@ pkgs.runCommand "zenos-installer-contract" { } ''
   assert live_manifest["aliases"]["/Config"] == "/etc"
   PY
   test -f ${configTemplate}/flake.nix
-  grep -Eq 'github:NixOS/nixpkgs/[0-9a-f]{40}' ${configTemplate}/flake.nix
-  grep -Eq 'github:zenos-n/zenpkgs/[0-9a-f]{40}' ${configTemplate}/flake.nix
-  grep -Eq 'github:doromiert/zenos-next/[0-9a-f]{40}' ${configTemplate}/flake.nix
+  grep -q 'github:NixOS/nixpkgs/nixos-26.05' ${configTemplate}/flake.nix
+  grep -q 'github:zenos-n/zenpkgs/migration/path-derived-dsl' ${configTemplate}/flake.nix
+  grep -q 'github:doromiert/zenos-next/main' ${configTemplate}/flake.nix
   if grep -q 'path:/nix/store' ${configTemplate}/flake.nix; then exit 1; fi
   test -x ${lib.getExe setup}
   test -f ${mode}/share/gnome-shell/modes/zenos-oobe.json
