@@ -1,0 +1,20 @@
+# Root mkMerge/mkIf and namespace-nested conditions retain leaf priorities.
+if true {
+  legacy.time.timeZone = "Europe/Warsaw";
+};
+legacy = {
+  if true {
+    security.sudo.wheelNeedsPassword = true;
+    services.openssh.enable = true;
+    system.name = "local-name-must-not-win";
+    networking.firewall.allowedTCPPorts = [ 443 ];
+  };
+  if false {
+    networking.extraHosts = "192.0.2.99 inactive.example";
+    networking.networkmanager.enable = false;
+  };
+};
+
+if false {
+  legacy.networking.hostName = "inactive-host";
+};

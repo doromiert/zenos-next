@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -31,6 +32,17 @@ def main():
     placeholder = "@ZENOS_SETUP_HARDWARE@"
     assert template_text.count(placeholder) == 1
     assert f'url = "path:{placeholder}";' in template_text
+    public = {
+        "nixpkgs": ("NixOS", "nixpkgs"),
+        "zenpkgs": ("zenos-n", "zenpkgs"),
+        "zenosSource": ("doromiert", "zenos-next"),
+    }
+    revisions = {}
+    for name, (owner, repo) in public.items():
+        match = re.search(rf'github:{owner}/{repo}/([0-9a-f]{{40}})', template_text)
+        assert match, (name, template_text)
+        revisions[name] = match.group(1)
+    assert "path:/nix/store" not in template_text
     fixtures = Path(__file__).resolve().parent / "fixtures"
     with tempfile.TemporaryDirectory(prefix="zenos-template-test-", dir="/tmp") as work:
         config = Path(work) / "config"
@@ -58,15 +70,19 @@ def main():
         }
         (pending_dir / "oobe.json").write_text(json.dumps(marker))
         ref = f"path:{config}"
-        run("nix", "flake", "lock", "--offline", ref)
+        run("nix", "flake", "lock", ref)
         lock = json.loads((config / "flake.lock").read_text())
-        hardware_node = lock["nodes"]["root"]["inputs"]["setup-hardware"]
+        root_inputs = lock["nodes"]["root"]["inputs"]
+        hardware_node = root_inputs["setup-hardware"]
         assert lock["nodes"][hardware_node]["flake"] is False
         assert lock["nodes"][hardware_node]["locked"]["path"] == hardware
-        for node in lock["nodes"].values():
-            if "locked" in node:
-                assert node["locked"]["type"] == "path", node
-                assert node["locked"]["path"].startswith("/nix/store/"), node
+        for name, (owner, repo) in public.items():
+            node = lock["nodes"][root_inputs[name]]
+            assert node["locked"]["type"] == "github", node
+            assert node["locked"]["owner"] == owner, node
+            assert node["locked"]["repo"] == repo, node
+            assert node["locked"]["rev"] == revisions[name], node
+        run("nix", "flake", "lock", "--offline", ref)
 
         def evaluate(host, expression):
             return json.loads(run(

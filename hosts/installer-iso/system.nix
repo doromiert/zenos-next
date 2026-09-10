@@ -7,6 +7,25 @@
   ...
 }:
 let
+  releaseVersion = "1.0.0Nb";
+  configHash = builtins.substring 0 7 (builtins.hashString "sha256" inputs.self.sourceInfo.narHash);
+  displayVersion = "${releaseVersion} (${configHash})";
+  oobeExtensions = [
+    "date-menu-formatter@marcinjakubowski.github.com"
+    "user-theme@gnome-shell-extensions.gcampax.github.com"
+    "zenos-oobe-mode@neg-zero.com"
+  ];
+  clockThemeCss = ''
+    @import url("resource:///org/gnome/shell/theme/default.css");
+
+    .clock-display {
+      font-family: "Zero", sans-serif !important;
+      font-size: 12px;
+      font-style: normal !important;
+      font-weight: normal !important;
+      letter-spacing: 0 !important;
+    }
+  '';
   live = installerStage == "live";
   temporary = live || installerStage == "oobe";
   setup = pkgs.zenos.system.zenos-setup;
@@ -14,8 +33,25 @@ let
   home = if live then "/Users/zenos" else "/run/zenos-oobe";
   sessionCommand = "${pkgs.coreutils}/bin/env XDG_SESSION_TYPE=wayland XDG_SESSION_CLASS=user XDG_SESSION_DESKTOP=GNOME XDG_CURRENT_DESKTOP=GNOME ZENOS_OOBE=1 ${config.services.displayManager.sessionData.wrapper} ${pkgs.gnome-session}/bin/gnome-session --session=zenos-oobe";
   normalUsers = lib.filterAttrs (_: user: user.enable && user.isNormalUser) config.users.users;
+  bootHooks = import (inputs.zenpkgs + "/lib/installer-boot.nix") {
+    inherit pkgs lib;
+    bootPackage = pkgs.zenos.theming.system.zenos-plymouth.override {
+      distroName = "ZenOS";
+      releaseVersion = displayVersion;
+      deviceName = if live then "ZenOS Installer" else config.networking.hostName;
+    };
+    refindInstaller = pkgs.zenos.system.zenos-refind-installer;
+    refindTheme = pkgs.zenos.theming.system.zenos-refind-theme;
+  };
 in
 {
+  imports = [
+    (import (inputs.zenpkgs + "/lib/zenfs-runtime.nix") {
+      managedUsers = lib.mapAttrs (_: user: { inherit (user) home group; }) normalUsers;
+      includeBootAlias = !live;
+    })
+    bootHooks.common
+  ] ++ lib.optional (!live) bootHooks.installed;
   # Only these three installer stages consume this concrete backend composition.
   assertions = [
     {
@@ -31,22 +67,37 @@ in
   # These public modules are not used until their current lowering is reliable.
   zenos.system.installed-base.enable = lib.mkForce false;
   zenos.system.oobe.enable = lib.mkForce false;
-  zenos.system.zenfs.enable = lib.mkForce false;
-  zenos.desktops.gnome.enable = lib.mkIf live (lib.mkForce false);
+  zenos.system.zenfs.enable = true;
 
   nixpkgs.config.allowUnfree = true;
   system.stateVersion = "26.05";
   system.nixos = {
     distroId = "zenos";
     distroName = "ZenOS";
+    version = displayVersion;
+    versionSuffix = "";
+    label = "${releaseVersion}-${configHash}";
     vendorId = "zenos";
     vendorName = "ZenOS";
     extraOSReleaseArgs = {
-      VERSION = "1.0.0Nb";
-      VERSION_ID = "1.0.0Nb";
-      PRETTY_NAME = "ZenOS 1.0.0Nb";
+      BUILD_ID = "${releaseVersion}-${configHash}";
+      CPE_NAME = "cpe:/o:zenos:zenos:${releaseVersion}";
+      LOGO = "zenos";
+      VERSION = displayVersion;
+      VERSION_ID = releaseVersion;
+      PRETTY_NAME = "ZenOS ${displayVersion}";
+    };
+    extraLSBReleaseArgs = {
+      DISTRIB_DESCRIPTION = "ZenOS ${displayVersion}";
+      DISTRIB_ID = "ZenOS";
+      DISTRIB_RELEASE = releaseVersion;
     };
   };
+  system.image = {
+    id = "zenos-installer";
+    version = "${releaseVersion}-${configHash}";
+  };
+  system.configurationRevision = configHash;
   nix.settings.experimental-features = [
     "nix-command"
     "flakes"
@@ -81,10 +132,33 @@ in
   security.rtkit.enable = true;
   hardware.graphics.enable = true;
   hardware.enableRedistributableFirmware = true;
+  fonts = lib.mkIf (!live) {
+    packages = [
+      pkgs.zenos.apps.fonts.atkinson-hyperlegible
+      pkgs.nerd-fonts.atkynson-mono
+      pkgs.zenos.apps.fonts.inter
+      pkgs.zenos.theming.fonts.zero.regular
+      pkgs.zenos.theming.fonts.zero.mono-thin
+    ];
+    fontconfig.defaultFonts = {
+      sansSerif = lib.mkDefault [ "Atkinson Hyperlegible" ];
+      monospace = lib.mkDefault [ "AtkynsonMono NF" ];
+    };
+  };
   services.pipewire = {
     enable = true;
     alsa.enable = true;
+    alsa.support32Bit = true;
     pulse.enable = true;
+  };
+  services.fwupd.enable = true;
+  services.fstrim.enable = true;
+  zramSwap.enable = true;
+  nix.settings.auto-optimise-store = true;
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
   };
 
   services.desktopManager.gnome.enable = lib.mkIf temporary true;
@@ -94,7 +168,10 @@ in
       if temporary then lib.mkForce false else lib.mkDefault config.services.desktopManager.gnome.enable;
     autoLogin.enable = lib.mkForce false;
     autoLogin.user = lib.mkForce null;
+    sddm.enable = lib.mkIf temporary (lib.mkForce false);
+    plasma-login-manager.enable = lib.mkIf temporary (lib.mkForce false);
   };
+  services.xserver.displayManager.lightdm.enable = lib.mkIf temporary (lib.mkForce false);
   services.greetd = lib.mkIf temporary {
     enable = true;
     restart = false;
@@ -163,11 +240,18 @@ in
   environment.systemPackages = [
     inputs.zenpkgs.packages.x86_64-linux.zen-dsl
     pkgs.nixos-rebuild
+    pkgs.zenos.programs.zenos-rebuild
   ]
   ++ lib.optionals temporary [
     setup
     mode
-  ] ++ lib.optionals live [ pkgs.gnome-console pkgs.nautilus ];
+  ]
+  ++ lib.optionals (temporary && !live) [ pkgs.zenos.apps.gnome-extensions.user-themes ]
+  ++ lib.optionals (temporary && !live) [
+    pkgs.zenos.apps.gnome-extensions.date-menu-formatter
+    pkgs.zenos.theming.wallpapers.destination-2
+  ]
+  ++ lib.optionals live [ pkgs.gnome-console pkgs.nautilus ];
   system.extraDependencies = lib.optionals temporary [ setup.src mode.src ];
   environment.pathsToLink = lib.optionals temporary [
     "/share/gnome-shell/extensions"
@@ -201,16 +285,57 @@ in
         cacheHome = "${user.home}/.private/Live";
         stateHome = "${user.home}/.private/State";
       };
+    } // lib.optionalAttrs (temporary && !live) {
+      # OOBE must remain isolated from the selected permanent desktop effects.
+      dconf.settings = {
+        "org/gnome/shell" = {
+          disable-user-extensions = false;
+          enabled-extensions = lib.mkForce oobeExtensions;
+        };
+        "org/gnome/shell/extensions/user-theme".name = lib.mkForce "ClockOverride";
+        "org/gnome/shell/extensions/date-menu-formatter" = {
+          formatter = lib.mkForce "01_luxon";
+          pattern = lib.mkForce "dd.MM  HH:mm";
+          font-size = lib.mkForce 12;
+          update-level = lib.mkForce 1;
+          text-align = lib.mkForce "center";
+        };
+        "org/gnome/desktop/background" = {
+          color-shading-type = lib.mkForce "solid";
+          picture-options = lib.mkForce "none";
+          picture-uri = lib.mkForce "";
+          picture-uri-dark = lib.mkForce "";
+          primary-color = lib.mkForce "#000000";
+          secondary-color = lib.mkForce "#000000";
+        };
+      };
+      xdg.dataFile."themes/ClockOverride/gnome-shell/gnome-shell.css".text = lib.mkForce clockThemeCss;
     }) normalUsers;
   };
 
   programs.dconf.enable = true;
-  programs.dconf.profiles.user.databases = lib.optionals temporary [
+  programs.dconf.profiles.user.databases = lib.optionals (temporary && !live) [
     {
       settings = {
         "org/gnome/shell" = {
           disable-user-extensions = false;
-          enabled-extensions = [ "zenos-oobe-mode@neg-zero.com" ];
+          enabled-extensions = oobeExtensions;
+        };
+        "org/gnome/shell/extensions/user-theme".name = "ClockOverride";
+        "org/gnome/shell/extensions/date-menu-formatter" = {
+          formatter = "01_luxon";
+          pattern = "dd.MM  HH:mm";
+          font-size = lib.gvariant.mkInt32 12;
+          update-level = lib.gvariant.mkInt32 1;
+          text-align = "center";
+        };
+        "org/gnome/desktop/background" = {
+          color-shading-type = "solid";
+          picture-options = "none";
+          picture-uri = "";
+          picture-uri-dark = "";
+          primary-color = "#000000";
+          secondary-color = "#000000";
         };
         "org/gnome/desktop/interface".color-scheme = "prefer-dark";
         "org/gnome/desktop/lockdown".disable-lock-screen = true;
@@ -224,38 +349,12 @@ in
     }
   ];
 
-  # Limited filesystem mapping for this installer, not the full ZenFS backend.
   systemd.tmpfiles.rules = [
-    "L /Config - - - - /etc"
-    "d /etc/ZenOS 0755 root root -"
-    "d /Users 0755 root root -"
+    "d /etc/ZenOS 0755 ${if live then "zenos users" else "root root"} -"
   ]
-  ++ lib.concatMap (
-    user:
-    map (directory: "d ${user.home}/.private${directory} 0700 ${user.name} ${user.group} -") [
-      ""
-      "/Config"
-      "/Packages"
-      "/Live"
-      "/State"
-    ]
-  ) (builtins.attrValues normalUsers)
   ++ lib.optionals (!live && temporary) [
     "Z /etc/ZenOS - zenos users -"
     "z /etc/ZenOS 0755 zenos users -"
   ];
 
-  boot.loader = lib.mkIf (!live) {
-    grub = {
-      enable = true;
-      efiSupport = true;
-      efiInstallAsRemovable = true;
-      device = "nodev";
-    };
-    efi = {
-      efiSysMountPoint = "/boot";
-      canTouchEfiVariables = false;
-    };
-    systemd-boot.enable = false;
-  };
 }

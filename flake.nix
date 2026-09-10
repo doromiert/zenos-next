@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     zenpkgs = {
-      url = "github:zenos-n/zenpkgs/2306ab6b377b2213b3a77025756e24ea24fe2438";
+      url = "github:zenos-n/zenpkgs/14c990057fed7cd0a7d79d62e14f80d50e12086c";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -54,16 +54,21 @@
       configTemplate = import ./hosts/installer-iso/config-template.nix {
         inherit inputs pkgs lib;
       };
+      liveConfig = import ./hosts/installer-iso/live-config.nix {
+        inherit inputs pkgs lib;
+        desktopSource = ./hosts/installer-iso/appearance.zcfg;
+      };
       installer = lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit inputs configTemplate;
+          inherit inputs configTemplate liveConfig;
           installerStage = "live";
         };
         modules = [
           zenpkgs.nixosModules.default
           ./hosts/installer-iso/image.nix
           ./hosts/installer-iso/system.nix
+          (import ./hosts/installer-iso/appearance-hook.nix { inherit inputs pkgs; })
         ];
       };
     in
@@ -75,15 +80,23 @@
       packages.${system} = {
         iso = installer.config.system.build.isoImage;
         config-template = configTemplate;
+        live-config = liveConfig.seed;
       };
 
       checks.${system} = {
+        installer-appearance = import ./hosts/installer-iso/appearance-checks.nix {
+          inherit inputs pkgs installer;
+        };
+        live-config-contract = import ./hosts/installer-iso/live-config-checks.nix {
+          inherit inputs pkgs liveConfig;
+        };
         installer-contract = import ./hosts/installer-iso/checks.nix {
           inherit
             inputs
             pkgs
             installer
             configTemplate
+            liveConfig
             ;
         };
 

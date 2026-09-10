@@ -1,0 +1,29 @@
+# Backend property records test preservation, not a public ZCFG priority API.
+legacy.environment.variables.ZENOS_LIVE_FORCE = {
+  _type = "override";
+  priority = 50;
+  content = "local-force";
+};
+legacy.environment.variables.ZENOS_LIVE_NESTED_TRUE = {
+  _type = "if";
+  condition = true;
+  content = {
+    _type = "merge";
+    contents = [
+      { _type = "if"; condition = true; content = "nested-true"; }
+      { _type = "if"; condition = false; content = "inactive"; }
+    ];
+  };
+};
+legacy.environment.variables.ZENOS_LIVE_NESTED_FALSE = {
+  _type = "if";
+  condition = false;
+  content = { _type = "if"; condition = true; content = "inactive"; };
+};
+legacy.services.netdata.python.extraPackages = $lib.attrValues;
+legacy.nix.package = $pkgs.legacy.nix;
+legacy.boot.kernelParams = {
+  _type = "order";
+  priority = 500;
+  content = [ "zenos-live-first" ];
+};

@@ -55,7 +55,7 @@ in
       generated =
         pkgs.runCommand "zenos-installed-${name}.nix"
           {
-            nativeBuildInputs = [ zenpkgs.packages.${system}.zen-dsl pkgs.nix ];
+            nativeBuildInputs = [ zenpkgs.packages.${system}.zen-dsl (pkgs.lib.getBin pkgs.nix) ];
             src = configRoot;
             hostName = name;
           }
@@ -80,6 +80,7 @@ in
         (setup-hardware + "/hardware-configuration.nix")
         ({ config, ... }: {
           networking.hostName = lib.mkDefault name;
+          system.build.zenosGeneratedConfig = generated;
           system.extraDependencies = [ configRoot generated ] ++ hardwareReferences ++ lib.unique (
             lib.concatMap sources [
               nixpkgs

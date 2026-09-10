@@ -1,0 +1,83 @@
+{
+  "enabled": [
+    "compiz-alike-magic-lamp-effect@hermes83.github.com",
+    "compiz-windows-effect@hermes83.github.com",
+    "CoverflowAltTab@palatis.blogspot.com",
+    "date-menu-formatter@marcinjakubowski.github.com",
+    "gsconnect@andyholmes.github.io",
+    "hide-cursor@elcste.com",
+    "hide-minimized@danigm.net",
+    "mouse-tail@lanesun.anlbrain.com",
+    "notification-timeout@chlumskyvaclav.gmail.com",
+    "rounded-window-corners@fxgn",
+    "user-theme@gnome-shell-extensions.gcampax.github.com",
+    "windowIsReady_Remover@nunofarruca@gmail.com",
+    "zenos-oobe-mode@neg-zero.com"
+  ],
+  "disabled": [
+    "AlphabeticalAppGrid@stuarthayhurst",
+    "app-hider@lynith.dev",
+    "burn-my-windows@schneegans.github.com",
+    "clipboard-indicator@tudmotu.com",
+    "hidetopbar@mathieu.bidon.ca",
+    "dash-stacks@neg-zero.com",
+    "forge@jmmaranan.com"
+  ],
+  "favorites": [
+    "com.negzero.zenos.setup.desktop",
+    "firefox.desktop",
+    "org.gnome.Nautilus.desktop",
+    "org.gnome.Console.desktop",
+    "org.gnome.SystemMonitor.desktop",
+    "org.gnome.Settings.desktop",
+    "org.gnome.DiskUtility.desktop",
+    "gparted.desktop"
+  ],
+  "fontFamilies": ["Atkinson Hyperlegible", "AtkynsonMono NF", "Inter", "Zero", "Zero Mono Thin"],
+  "settings": {
+    "org/gnome/desktop/interface": {
+      "accent-color": ["s", "purple"],
+      "color-scheme": ["s", "prefer-dark"],
+      "cursor-size": ["i", 24],
+      "cursor-theme": ["s", "GoogleDot-Black"],
+      "font-name": ["s", "Atkinson Hyperlegible 11"],
+      "document-font-name": ["s", "Atkinson Hyperlegible 11"],
+      "monospace-font-name": ["s", "AtkynsonMono NF 11"],
+      "gtk-theme": ["s", "adw-gtk3-dark"],
+      "icon-theme": ["s", "Adwaita-hacks"],
+      "show-battery-percentage": ["b", true]
+    },
+    "org/gnome/desktop/session": {"idle-delay": ["u", 0]},
+    "org/gnome/desktop/wm/preferences": {"button-layout": ["s", ":close"]},
+    "org/gnome/desktop/lockdown": {"disable-lock-screen": ["b", true]},
+    "org/gnome/desktop/screensaver": {"lock-enabled": ["b", false]},
+    "org/gnome/shell/extensions/date-menu-formatter": {
+      "font-size": ["i", 12], "update-level": ["i", 1],
+      "formatter": ["s", "01_luxon"], "pattern": ["s", "dd.MM  HH:mm"], "text-align": ["s", "center"]
+    },
+    "org/gnome/shell/extensions/user-theme": {"name": ["s", "ClockOverride"]},
+    "org/gnome/shell/extensions/com/github/hermes83/compiz-windows-effect": {
+      "friction": ["d", 4.9], "mass": ["d", 50.0], "resize-effect": ["b", true],
+      "speedup-factor-divider": ["d", 4.7], "spring-k": ["d", 2.2]
+    },
+    "org/gnome/shell/extensions/coverflowalttab": {
+      "desaturate-factor": ["d", 0.0], "icon-style": ["s", "Classic"], "use-glitch-effect": ["b", true]
+    },
+    "org/gnome/shell/extensions/mouse-tail": {"render-mode": ["s", "precise"]},
+    "org/gnome/shell/extensions/notification-timeout": {"timeout": ["i", 2000]},
+    "org/gnome/shell/extensions/rounded-window-corners-reborn": {"border-width": ["i", 1], "settings-version": ["u", 7]},
+    "org/gnome/shell/extensions/alphabetical-app-grid": {"folder-order-position": ["s", "end"]},
+    "org/gnome/shell/extensions/burn-my-windows": {"show-support-dialog": ["b", false]},
+    "org/gnome/shell/extensions/clipboard-indicator": {"clear-on-boot": ["b", true], "display-mode": ["i", 0], "toggle-menu": ["as", ["<Control><Super>v"]]},
+    "org/gnome/shell/extensions/hidetopbar": {
+      "enable-intellihide": ["b", false], "mouse-sensitive": ["b", true], "mouse-sensitive-fullscreen-window": ["b", false]
+    },
+    "org/gnome/shell/extensions/dash-stacks": {"popup-height": ["i", 400], "popup-width": ["i", 400]},
+    "org/gnome/shell/extensions/forge": {
+      "css-last-update": ["u", 37], "window-gap-size": ["u", 4], "dnd-center-layout": ["s", "swap"],
+      "float-always-on-top-enabled": ["b", false], "focus-border-toggle": ["b", false],
+      "quick-settings-enabled": ["b", false], "split-border-toggle": ["b", false],
+      "stacked-tiling-mode-enabled": ["b", false], "tabbed-tiling-mode-enabled": ["b", false]
+    }
+  }
+}

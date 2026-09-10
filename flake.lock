@@ -574,17 +574,17 @@
         "vsc-extensions": "vsc-extensions"
       },
       "locked": {
-        "lastModified": 1788775562,
-        "narHash": "sha256-t3V5vBEpgywoA8OCmNqRs5vRvX11NWuPKdvMSvkibe4=",
+        "lastModified": 1789024758,
+        "narHash": "sha256-WqWaXApNIBJaRKCNBmlM5lIsNHDqAAakoZvB8FqqzLI=",
         "owner": "zenos-n",
         "repo": "zenpkgs",
-        "rev": "2306ab6b377b2213b3a77025756e24ea24fe2438",
+        "rev": "14c990057fed7cd0a7d79d62e14f80d50e12086c",
         "type": "github"
       },
       "original": {
         "owner": "zenos-n",
         "repo": "zenpkgs",
-        "rev": "2306ab6b377b2213b3a77025756e24ea24fe2438",
+        "rev": "14c990057fed7cd0a7d79d62e14f80d50e12086c",
         "type": "github"
       }
     }

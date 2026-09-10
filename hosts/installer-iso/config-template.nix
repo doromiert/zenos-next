@@ -4,25 +4,20 @@
   lib,
 }:
 let
-  # Pin every transitive input to its retained source, including non-flake assets.
-  pin =
-    input:
-    {
-      url = "path:${input.outPath}";
-    }
-    // (
-      if input ? inputs then
-        {
-          inputs = builtins.mapAttrs (_: pin) input.inputs;
-        }
-      else
-        { flake = false; }
-    );
+  revision = name: input:
+    let value = input.rev or input.dirtyRev or null;
+    in assert lib.assertMsg (
+      builtins.isString value && builtins.match "[0-9a-f]{40}" value != null
+    ) "${name} must have an immutable 40-character Git revision";
+    value;
   pinnedInputs = {
-    nixpkgs = pin inputs.nixpkgs;
-    zenpkgs = pin inputs.zenpkgs;
+    nixpkgs.url = "github:NixOS/nixpkgs/${revision "nixpkgs" inputs.nixpkgs}";
+    zenpkgs = {
+      url = "github:zenos-n/zenpkgs/${revision "zenpkgs" inputs.zenpkgs}";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     zenosSource = {
-      url = "path:${inputs.self.outPath}";
+      url = "github:doromiert/zenos-next/${revision "zenos-next" inputs.self}";
       flake = false;
     };
     setup-hardware = {
