@@ -96,7 +96,6 @@ assert desktop.security.sudo.wheelNeedsPassword;
 assert desktop.services.qemuGuest.enable;
 assert desktop.home-manager.useGlobalPkgs;
 assert !desktop.home-manager.useUserPackages;
-assert builtins.elem pkgs.zsh desktop.users.users.alice.packages;
 assert lib.elem (toString (lib.getBin pkgs.nix)) installedNativeTools;
 assert !lib.elem (toString (lib.getDev pkgs.nix)) installedNativeTools;
 assert !oobe.boot.loader.grub.enable && desktop.boot.loader.systemd-boot.enable;

@@ -193,6 +193,8 @@ def main():
                   host = c.networking.hostName;
                   uid = c.users.users.alice.uid;
                   home = c.users.users.alice.home;
+                  shell = c.users.users.alice.shell.pname;
+                  userPackages = builtins.length c.users.users.alice.packages;
                   gnome = c.services.desktopManager.gnome.enable;
                   drv = c.system.build.toplevel.drvPath;
                 }""",
@@ -200,6 +202,7 @@ def main():
             assert actual["disk"] == "/dev/vda"
             assert actual["root"] == "ext4" and actual["boot"] == "vfat"
             assert actual["uid"] == 1000 and actual["home"] == "/Users/alice"
+            assert actual["shell"] == "zsh" and actual["userPackages"] > 0
             assert actual["host"] == "generated-test" and not actual["gnome"]
             print("PASS: external Setup generator, automatic Disko filesystem mapping, hostname and user choices")
 
