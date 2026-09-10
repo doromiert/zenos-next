@@ -104,6 +104,16 @@ in
   ];
   nix.registry.zenpkgs.flake = inputs.zenpkgs;
   networking.networkmanager.enable = true;
+  services.openssh = lib.mkIf (!temporary) {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      KbdInteractiveAuthentication = false;
+      PasswordAuthentication = true;
+      PermitEmptyPasswords = false;
+      PermitRootLogin = "no";
+    };
+  };
   time.timeZone = lib.mkDefault "UTC";
   i18n.defaultLocale = lib.mkDefault "en_US.UTF-8";
   console.keyMap = lib.mkDefault "us";
@@ -153,6 +163,7 @@ in
   };
   services.fwupd.enable = true;
   services.fstrim.enable = true;
+  services.qemuGuest.enable = true;
   zramSwap.enable = true;
   nix.settings.auto-optimise-store = true;
   nix.gc = {

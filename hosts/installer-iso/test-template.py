@@ -140,7 +140,7 @@ def main():
         completed = evaluate("oobe-test", summary)
         assert completed == desktop
         assert list(config.rglob("*.nix")) == [config / "flake.nix"]
-        print("PASS: exact hardware placeholder/input, metadata, offline locking, ZCFG check/parse,")
+        print("PASS: online source lock, private hardware input, offline evaluation, ZCFG check/parse,")
         print("      private hardware retention, XDG, GNOME/KDE/headless choices, version-3 markers")
         print(f"Permanent desktop derivation: {desktop_drv}")
 

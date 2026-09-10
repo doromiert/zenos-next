@@ -75,6 +75,12 @@ assert oobe.home-manager.users.zenos.dconf.settings."org/gnome/desktop/backgroun
 assert lib.hasInfix "font-family: \"Zero\""
   oobe.home-manager.users.zenos.xdg.dataFile."themes/ClockOverride/gnome-shell/gnome-shell.css".text;
 assert !desktop.services.greetd.enable;
+assert desktop.services.openssh.enable;
+assert desktop.services.openssh.openFirewall;
+assert desktop.services.openssh.settings.PasswordAuthentication;
+assert desktop.services.openssh.settings.PermitRootLogin == "no";
+assert !oobe.services.openssh.enable;
+assert !live.services.openssh.enable;
 assert desktop.services.displayManager.gdm.enable;
 assert !oobe.services.displayManager.gdm.enable;
 assert !oobe.services.displayManager.sddm.enable;
@@ -86,6 +92,7 @@ assert !(desktop.users.users ? zenos);
 assert !(desktop.systemd.user.services ? zenos-setup);
 assert desktop.users.users.alice.home == "/Users/alice";
 assert desktop.security.sudo.wheelNeedsPassword;
+assert desktop.services.qemuGuest.enable;
 assert lib.elem (toString (lib.getBin pkgs.nix)) installedNativeTools;
 assert !lib.elem (toString (lib.getDev pkgs.nix)) installedNativeTools;
 assert !oobe.boot.loader.grub.enable && desktop.boot.loader.systemd-boot.enable;
