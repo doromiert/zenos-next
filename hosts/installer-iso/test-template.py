@@ -84,10 +84,9 @@ def main():
             assert node["locked"]["owner"] == owner, node
             assert node["locked"]["repo"] == repo, node
             assert re.fullmatch(r"[0-9a-f]{40}", node["locked"]["rev"]), node
-        zenpkgs_revision = lock["nodes"][root_inputs["zenpkgs"]]["locked"]["rev"]
         run(
-            "nix", "build", "--no-link",
-            f"github:zenos-n/zenpkgs/{zenpkgs_revision}#dsl-bundle",
+            "nix", "eval", "--no-write-lock-file", "--raw",
+            f"{ref}#nixosConfigurations.oobe-test.config.system.build.toplevel.drvPath",
         )
         run("nix", "flake", "lock", "--offline", ref)
 
