@@ -284,8 +284,8 @@ in
   };
 
   home-manager = {
-    useGlobalPkgs = true;
-    useUserPackages = true;
+    useGlobalPkgs = lib.mkForce true;
+    useUserPackages = lib.mkForce true;
     users = lib.mapAttrs (_: user: {
       home = {
         stateVersion = lib.mkDefault "26.05";
